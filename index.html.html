@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Sell-out Điện thoại</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'] } } } }
+</script>
+<style>
+  body { background: #f4f6fb; }
+  .card { background:#fff; border:1px solid #e6e9f2; border-radius:1rem; box-shadow:0 1px 2px rgba(16,24,40,.04), 0 4px 16px rgba(16,24,40,.04); }
+  .field { width:100%; border:1px solid #d7dce8; border-radius:.6rem; padding:.5rem .7rem; font-size:.875rem; background:#fff; transition:.15s; }
+  .field:focus { outline:none; border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.18); }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1rem; border-radius:.65rem; font-weight:600; font-size:.875rem; transition:.15s; cursor:pointer; white-space:nowrap; }
+  .btn.hidden { display:none; }
+  .pill { display:inline-flex; align-items:center; border-radius:999px; padding:.4rem .8rem; font-size:.78rem; font-weight:600; cursor:pointer; white-space:nowrap; transition:.15s; }
+  .pill:hover { filter:brightness(1.12); }
+  html { scroll-behavior:smooth; }
+  section[id] { scroll-margin-top:3.5rem; }
+  .navlink { padding:.4rem .8rem; border-radius:.6rem; font-weight:600; font-size:.85rem; color:#475569; white-space:nowrap; }
+  .navlink:hover, .navlink:active { background:#eef2ff; color:#4338ca; }
+  .hint { display:none; font-size:.72rem; color:#6366f1; margin:.25rem 0; }
+  #tabs { overflow-x:auto; flex-wrap:nowrap; max-width:100%; scrollbar-width:none; }
+  #tabs::-webkit-scrollbar, #topnav div::-webkit-scrollbar { display:none; }
+  .tab { white-space:nowrap; }
+  @media (pointer:coarse) { input[type=number]::-webkit-inner-spin-button { display:none; } }
+  @media (max-width: 639px) {
+    .field { font-size:16px; padding:.65rem .75rem; }
+    .btn { padding:.7rem 1rem; }
+    .hint { display:block; }
+    .card { border-radius:.9rem; }
+    .scroll-y { max-height:22rem !important; }
+    table.dt { font-size:.78rem; }
+    table.dt td, table.dt th { padding:.5rem .45rem; }
+    .shopbtn { padding:.5rem .7rem; font-size:.82rem; min-height:44px; }
+    .ctl { width:100%; }
+    .ctl .field, .ctl .btn { width:100% !important; justify-content:center; }
+    [data-edit],[data-del] { padding:.4rem .35rem; display:inline-block; }
+    .tab { padding:.55rem .85rem; }
+    .formbar { position:sticky; bottom:0; z-index:20; margin:1rem -1.25rem -1.25rem; padding:.75rem 1.25rem calc(.75rem + env(safe-area-inset-bottom));
+      background:rgba(255,255,255,.96); backdrop-filter:blur(8px); border-top:1px solid #e6e9f2; border-radius:0 0 .9rem .9rem; }
+    .formbar .btnrow { width:100%; }
+    .formbar .btnrow .btn { flex:1; justify-content:center; padding-left:.5rem; padding-right:.5rem; }
+    .formbar .btnrow .btn-primary { flex:2; }
+    #toast { bottom:6rem !important; max-width:90vw; text-align:center; }
+  }
+
+  .shopbtn { display:inline-flex; flex-direction:column; align-items:flex-start; text-align:left; border:1px solid #d7dce8; background:#fff; border-radius:.6rem; padding:.35rem .65rem; font-size:.78rem; line-height:1.25; cursor:pointer; transition:.12s; }
+  .shopbtn small { color:#94a3b8; font-size:.68rem; }
+  .shopbtn:hover { border-color:#6366f1; background:#eef2ff; }
+  .shopbtn.done { background:#ecfdf5; border-color:#a7f3d0; }
+  .shopbtn.done small { color:#059669; font-weight:600; }
+  .shopbtn.sel { background:#4f46e5; border-color:#4f46e5; color:#fff; box-shadow:0 2px 8px rgba(79,70,229,.35); }
+  .shopbtn.sel small { color:#c7d2fe; }
+  tr.sale-row td { background:#eef2ff; font-weight:600; }
+  tr.sale-row td.sale-sticky { background:#eef2ff; }
+  tr.sale-row:hover td { background:#e0e7ff !important; }
+  .btn-primary { background:linear-gradient(135deg,#6366f1,#4f46e5); color:#fff; box-shadow:0 4px 12px rgba(79,70,229,.3); }
+  .btn-primary:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  .btn-ghost { background:#fff; color:#334155; border:1px solid #d7dce8; }
+  .btn-ghost:hover { background:#f1f5f9; }
+  .btn-danger { background:#fff; color:#dc2626; border:1px solid #fecaca; }
+  .btn-danger:hover { background:#fef2f2; }
+  .tab { padding:.45rem .9rem; border-radius:.6rem; font-size:.85rem; font-weight:600; color:#64748b; cursor:pointer; }
+  .tab.active { background:#eef2ff; color:#4338ca; }
+  table.dt { width:100%; border-collapse:separate; border-spacing:0; font-size:.82rem; }
+  table.dt th { position:sticky; top:0; background:#f8fafc; color:#475569; font-weight:600; text-align:left; padding:.6rem .6rem; border-bottom:1px solid #e2e8f0; white-space:nowrap; z-index:1; }
+  table.dt td { padding:.5rem .6rem; border-bottom:1px solid #f1f5f9; white-space:nowrap; }
+  table.dt tbody tr:hover td { background:#f8faff; }
+  table.dt tfoot td { font-weight:700; background:#f8fafc; border-top:2px solid #e2e8f0; position:sticky; bottom:0; }
+  .chip { display:inline-flex; align-items:center; gap:.4rem; background:#eef2ff; color:#3730a3; border-radius:999px; padding:.25rem .3rem .25rem .7rem; font-size:.78rem; font-weight:500; }
+  .chip button { width:1.25rem; height:1.25rem; border-radius:999px; background:#c7d2fe; color:#3730a3; line-height:1; font-weight:700; }
+  .chip button:hover { background:#a5b4fc; }
+  .scroll-y { max-height:26rem; overflow:auto; }
+  #toast { transition:.25s; transform:translateY(20px); opacity:0; pointer-events:none; }
+  #toast.show { transform:none; opacity:1; }
+  input[type=number]::-webkit-inner-spin-button { opacity:1; }
+</style>
+</head>
+<body class="font-sans text-slate-800 antialiased">
+
+<!-- HEADER -->
+<header class="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 text-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+    <div>
+      <p class="text-indigo-200 text-xs font-semibold tracking-widest uppercase">Sell-out Dashboard</p>
+      <h1 class="text-xl sm:text-3xl font-extrabold leading-tight">Quản lý số bán điện thoại theo shop</h1>
+      <p class="hidden sm:block text-indigo-100 text-sm mt-1">Nhập theo ngày · Tự động tổng hợp KPI tháng · Dữ liệu lưu trên trình duyệt này</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+      <label class="text-sm text-indigo-100 font-medium">Xem tháng</label>
+      <select id="monthSel" class="rounded-lg px-3 py-2 text-slate-800 text-sm font-semibold bg-white border-0 focus:ring-2 focus:ring-white/60"></select>
+      <button id="btnExport" class="btn bg-white text-indigo-700 hover:bg-indigo-50 !px-3">⬇ Xuất CSV</button>
+      <button id="btnClear" class="btn bg-white/10 text-white border border-white/30 hover:bg-white/20 !px-3">🗑 Xóa dữ liệu</button>
+      <button id="syncPill" type="button" class="pill border"></button>
+      <button id="btnCfg" type="button" class="btn bg-white/10 text-white border border-white/30 hover:bg-white/20 !px-3" title="Kết nối Google Sheets">⚙</button>
+    </div>
+  </div>
+</header>
+<nav id="topnav" class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2 flex gap-1 overflow-x-auto" style="scrollbar-width:none">
+    <a class="navlink" href="#secForm">✍ Nhập liệu</a>
+    <a class="navlink" href="#shareSection">📊 Thị phần</a>
+    <a class="navlink" href="#gapSection">⚖ GAP O−X</a>
+    <a class="navlink" href="#saleSection">👤 Sale man</a>
+    <a class="navlink" href="#secCharts">📈 Biểu đồ</a>
+    <a class="navlink" href="#secTable">🗂 Dữ liệu</a>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 -mt-0 py-6 space-y-6">
+
+  <!-- KPI -->
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" id="kpis"></section>
+
+  <!-- FORM -->
+  <section class="card p-5 sm:p-6" id="secForm">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <div>
+        <h2 class="text-lg font-bold" id="formTitle">Nhập số liệu bán hàng</h2>
+        <p class="text-sm text-slate-500">Chọn ngày + shop, nhập số bán theo hãng và theo phân khúc, rồi bấm “Thêm dữ liệu”.</p>
+      </div>
+      <span id="editBadge" class="hidden text-xs font-semibold bg-amber-100 text-amber-800 px-3 py-1 rounded-full">Đang chỉnh sửa một dòng</span>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-12 gap-3 mb-3">
+      <div class="col-span-1 md:col-span-3">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Ngày bán</label>
+        <input id="fDate" type="date" class="field">
+      </div>
+      <div class="col-span-1 md:col-span-3">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Sale man</label>
+        <select id="fSaleSel" class="field"></select>
+      </div>
+      <div class="col-span-2 md:col-span-4">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Shop <span class="font-normal">(chọn bên dưới hoặc gõ để tìm)</span></label>
+        <input id="fShop" list="shopList" class="field" placeholder="VD: TGD_HCM_Q07 - 07 Tân Mỹ" autocomplete="off">
+        <datalist id="shopList"></datalist>
+      </div>
+      <div class="hidden md:block md:col-span-2">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Quận</label>
+        <input id="fDist" class="field bg-slate-50 text-slate-600" readonly placeholder="—">
+      </div>
+    </div>
+
+    <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <p id="pickerTitle" class="text-sm font-semibold text-slate-700"></p>
+        <p class="hidden sm:block text-xs text-slate-500"><span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 align-middle"></span> đã nhập ngày này · bấm một shop để điền; lưu xong tự chuyển sang shop kế tiếp chưa nhập</p>
+      </div>
+      <div id="shopPicker" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <!-- Hãng -->
+      <div class="rounded-xl border border-slate-200 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-sm">① Số bán theo hãng</h3>
+          <span class="text-xs text-slate-500">Tổng: <b id="sumBrand" class="text-slate-800">0</b></span>
+        </div>
+        <div id="brandInputs" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+      </div>
+      <!-- Phân khúc -->
+      <div class="rounded-xl border border-slate-200 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-sm">② Số bán theo phân khúc giá</h3>
+          <span class="text-xs text-slate-500">Tổng: <b id="sumSeg" class="text-slate-800">0</b></span>
+        </div>
+        <div id="segInputs" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+      </div>
+    </div>
+
+    <!-- Sản phẩm -->
+    <div class="rounded-xl border border-slate-200 p-4 mt-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h3 class="font-bold text-sm">③ Sản phẩm đã bán <span class="font-normal text-slate-500">(tùy chọn — lấy từ danh sách model trong file Excel)</span></h3>
+        <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+          <input id="autoAdd" type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+          Tự cộng vào số hãng &amp; phân khúc khi chọn model
+        </label>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
+        <div class="col-span-2 md:col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Hãng</label>
+          <select id="pBrand" class="field"></select>
+        </div>
+        <div class="col-span-2 md:col-span-6">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Model</label>
+          <select id="pModel" class="field"></select>
+        </div>
+        <div class="col-span-1 md:col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Số lượng</label>
+          <input id="pQty" type="number" inputmode="numeric" min="1" value="1" class="field num">
+        </div>
+        <div class="col-span-1 md:col-span-2">
+          <button id="btnAddProd" type="button" class="btn btn-ghost w-full justify-center">＋ Chọn</button>
+        </div>
+      </div>
+      <div id="chips" class="flex flex-wrap gap-2 mt-3 min-h-[1.75rem]"></div>
+    </div>
+
+    <div class="formbar flex flex-wrap items-center justify-between gap-2 mt-5">
+      <p id="formMsg" class="text-sm text-slate-500"></p>
+      <div class="btnrow flex gap-2">
+        <button id="btnCancel" type="button" class="btn btn-ghost hidden">Hủy chỉnh sửa</button>
+        <button id="btnReset" type="button" class="btn btn-ghost">Làm mới</button>
+        <button id="btnAdd" type="button" class="btn btn-primary">＋ Thêm dữ liệu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- THỊ PHẦN & GAP -->
+  <section class="card p-5 sm:p-6" id="shareSection">
+    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+      <div>
+        <h2 class="text-lg font-bold">Bảng Thị phần theo shop <span class="text-slate-400 font-medium text-base">— <span class="monthLbl"></span></span></h2>
+        <p class="text-sm text-slate-500">% sản lượng từng hãng trên tổng số máy bán tại mỗi shop (đủ toàn bộ shop trong danh sách).</p>
+      </div>
+      <div class="ctl flex flex-wrap items-center gap-2">
+        <select id="shareDay" class="field !w-auto" title="Xem theo"></select>
+        <select id="shareSort" class="field !w-auto" title="Sắp xếp">
+          <option value="default">Sắp xếp: theo file Excel</option>
+          <option value="total">Tổng máy giảm dần</option>
+          <option value="oppo">% OPPO giảm dần</option>
+          <option value="gapAsc">GAP tăng dần (OPPO thua nhiều nhất)</option>
+          <option value="gapDesc">GAP giảm dần (OPPO dẫn nhiều nhất)</option>
+        </select>
+        <input id="shareSearch" class="field !w-52" placeholder="🔍 Lọc shop, sale man, quận…">
+        <button id="btnExportShare" class="btn btn-ghost">⬇ CSV Thị phần &amp; GAP</button>
+      </div>
+    </div>
+    <div id="shareTiles" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-4"></div>
+    <p class="hint">↔ Vuốt ngang để xem đủ các cột</p>
+    <div class="scroll-y rounded-lg border border-slate-100" id="shareTable" style="max-height:34rem"></div>
+    <p class="text-xs text-slate-400 mt-2">Ô được tô màu theo hãng, độ đậm tỉ lệ với % thị phần; hãng dẫn đầu của shop in đậm.</p>
+  </section>
+
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-5">
+      <h3 class="font-bold">Cơ cấu thị phần từng shop (100%)</h3>
+      <p class="text-xs text-slate-500 mb-3"><span class="modeLbl"></span> · cuộn để xem đủ các shop</p>
+      <div class="overflow-y-auto rounded-lg" style="max-height:34rem"><div id="shareChartBox"><canvas id="chShare"></canvas></div></div>
+    </div>
+    <div class="card p-5">
+      <h3 class="font-bold">GAP OPPO − Xiaomi theo shop (điểm %)</h3>
+      <p class="text-xs text-slate-500 mb-3"><span class="modeLbl"></span> · xanh: OPPO dẫn · đỏ: Xiaomi dẫn</p>
+      <div class="overflow-y-auto rounded-lg" style="max-height:34rem"><div id="gapChartBox"><canvas id="chGap"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="card p-5 sm:p-6" id="gapSection">
+    <div class="mb-4">
+      <h2 class="text-lg font-bold">Phân tích GAP OPPO − Xiaomi (%) <span class="text-slate-400 font-medium text-base">— <span class="monthLbl"></span></span></h2>
+      <p class="text-sm text-slate-500">GAP = %OPPO − %Xiaomi trên tổng máy của shop (đơn vị: điểm %). Dương = OPPO dẫn trước đối thủ. Có tổng tháng và từng ngày.</p>
+    </div>
+    <div id="gapTiles" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4"></div>
+    <p class="hint">↔ Vuốt ngang để xem đủ các cột</p>
+    <div class="overflow-auto rounded-lg border border-slate-100" id="gapTable" style="max-height:36rem"></div>
+    <p class="text-xs text-slate-400 mt-2">Rê chuột vào ô ngày để xem chi tiết số máy. Đánh giá: ≥ +5 điểm “Dẫn trước”, ≤ −5 điểm “Thua”, còn lại “Cân bằng”.</p>
+  </section>
+
+  <!-- THEO SALE MAN -->
+  <section class="card p-5 sm:p-6" id="saleSection">
+    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+      <div>
+        <h2 class="text-lg font-bold">Phân tích theo Sale man <span class="text-slate-400 font-medium text-base">— <span class="monthLbl"></span></span></h2>
+        <p class="text-sm text-slate-500">Thị phần hãng, thị phần phân khúc và GAP OPPO − Xiaomi: tổng từng Sale man và từng shop phụ trách. Kỳ xem: <b class="modeLbl text-slate-700"></b> (đổi ở ô chọn ngày của bảng Thị phần).</p>
+      </div>
+      <div class="ctl flex flex-wrap items-center gap-2">
+        <select id="saleFilter" class="field !w-auto"></select>
+        <button id="btnExportSale" class="btn btn-ghost">⬇ CSV theo Sale man</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+      <div class="rounded-xl border border-slate-200 p-4">
+        <h3 class="font-bold text-sm mb-2">Cơ cấu thị phần hãng của từng Sale man</h3>
+        <div id="saleShareBox"><canvas id="chSaleShare"></canvas></div>
+      </div>
+      <div class="rounded-xl border border-slate-200 p-4">
+        <h3 class="font-bold text-sm mb-2">GAP OPPO − Xiaomi của từng Sale man (điểm %)</h3>
+        <div id="saleGapBox"><canvas id="chSaleGap"></canvas></div>
+      </div>
+    </div>
+
+    <h3 class="font-bold mb-1">① Thị phần hãng (%) — tổng Sale man &amp; từng shop phụ trách</h3>
+    <p class="hint">↔ Vuốt ngang để xem đủ các cột</p>
+    <div class="scroll-y rounded-lg border border-slate-100 mb-6" id="saleBrandTable" style="max-height:30rem"></div>
+
+    <h3 class="font-bold mb-1">② Thị phần phân khúc giá (%) — tổng Sale man &amp; từng shop phụ trách</h3>
+    <p class="hint">↔ Vuốt ngang để xem đủ các cột</p>
+    <div class="scroll-y rounded-lg border border-slate-100 mb-6" id="saleSegTable" style="max-height:30rem"></div>
+
+    <h3 class="font-bold mb-1">③ GAP OPPO − Xiaomi theo Sale man — tổng tháng &amp; từng ngày</h3>
+    <p class="hint">↔ Vuốt ngang để xem đủ các cột</p>
+    <div class="overflow-auto rounded-lg border border-slate-100" id="saleGapTable" style="max-height:26rem"></div>
+    <p class="text-xs text-slate-400 mt-2">Dòng đậm là tổng của Sale man; các dòng thụt vào là từng shop Sale man đó phụ trách. Ô trống (—) là chưa có số bán.</p>
+  </section>
+
+  <!-- CHARTS -->
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4" id="secCharts">
+    <div class="card p-5 lg:col-span-2">
+      <h3 class="font-bold">Số bán theo ngày — <span class="monthLbl"></span></h3>
+      <p class="text-xs text-slate-500 mb-3">Cột chồng theo hãng</p>
+      <div class="h-60 sm:h-72"><canvas id="chDaily"></canvas></div>
+    </div>
+    <div class="card p-5">
+      <h3 class="font-bold">Thị phần theo hãng</h3>
+      <p class="text-xs text-slate-500 mb-3"><span class="monthLbl"></span></p>
+      <div class="h-60 sm:h-72"><canvas id="chBrand"></canvas></div>
+    </div>
+    <div class="card p-5">
+      <h3 class="font-bold">Theo phân khúc giá</h3>
+      <p class="text-xs text-slate-500 mb-3"><span class="monthLbl"></span></p>
+      <div class="h-56 sm:h-64"><canvas id="chSeg"></canvas></div>
+    </div>
+    <div class="card p-5">
+      <h3 class="font-bold">Top 10 shop</h3>
+      <p class="text-xs text-slate-500 mb-3"><span class="monthLbl"></span></p>
+      <div class="h-56 sm:h-64"><canvas id="chShop"></canvas></div>
+    </div>
+    <div class="card p-5">
+      <h3 class="font-bold">KPI theo tháng</h3>
+      <p class="text-xs text-slate-500 mb-3">Tổng số máy mỗi tháng</p>
+      <div class="h-56 sm:h-64"><canvas id="chMonth"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TABLES -->
+  <section class="card p-5 sm:p-6" id="secTable">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div class="flex gap-1" id="tabs">
+        <button class="tab active" data-tab="brand">Số bán theo hãng</button>
+        <button class="tab" data-tab="seg">Theo phân khúc</button>
+        <button class="tab" data-tab="prod">Sản phẩm đã bán</button>
+        <button class="tab" data-tab="shop">Tổng hợp tháng theo shop</button>
+      </div>
+      <div class="ctl flex items-center gap-2">
+        <input id="search" class="field sm:!w-56" placeholder="🔍 Tìm shop, sale man, quận…">
+        <button id="btnExportShop" class="btn btn-ghost hidden">⬇ CSV tổng hợp</button>
+      </div>
+    </div>
+    <p class="hint">↔ Vuốt ngang để xem đủ các cột</p>
+    <div class="scroll-y rounded-lg border border-slate-100" id="tableWrap"></div>
+    <p class="text-xs text-slate-400 mt-3">Dữ liệu tự động lưu trong localStorage của trình duyệt. Đổi trình duyệt/máy hoặc xóa dữ liệu duyệt web sẽ mất — hãy xuất CSV để sao lưu.</p>
+  </section>
+</main>
+
+<!-- MODAL KẾT NỐI GOOGLE SHEETS -->
+<div id="cfgModal" class="hidden fixed inset-0 z-[60] bg-slate-900/50 items-end sm:items-center justify-center p-0 sm:p-4">
+  <div class="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 max-h-[92vh] overflow-y-auto">
+    <div class="flex items-start justify-between gap-3 mb-3">
+      <div>
+        <h3 class="text-lg font-bold">Kết nối Google Sheets</h3>
+        <p class="text-sm text-slate-500">Mọi người nhập vào cùng một Google Sheet; dashboard tự đồng bộ để ai cũng thấy cùng số liệu.</p>
+      </div>
+      <button type="button" id="cfgClose" class="text-slate-400 hover:text-slate-700 text-2xl leading-none px-2" aria-label="Đóng">×</button>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">URL Web App (kết thúc bằng /exec)</label>
+        <input id="cfgUrl" class="field" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Mật khẩu truy cập (ACCESS_KEY)</label>
+        <input id="cfgKey" type="password" class="field" autocomplete="off">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Tên của bạn <span class="font-normal">(ghi vào cột “Người nhập”, không bắt buộc)</span></label>
+        <input id="cfgBy" class="field" placeholder="VD: Trần Thành">
+      </div>
+      <p id="cfgMsg" class="text-sm"></p>
+      <div class="flex flex-wrap gap-2 justify-end pt-1">
+        <button type="button" id="cfgDisc" class="btn btn-danger">Ngắt kết nối</button>
+        <button type="button" id="cfgTest" class="btn btn-ghost">Kiểm tra</button>
+        <button type="button" id="cfgSave" class="btn btn-primary">Lưu &amp; đồng bộ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-xl z-50"></div>
+
+<script>
+/* ======== DỮ LIỆU TỪ FILE EXCEL (DASHBOARD_DATA.xlsx) ======== */
+const DATA = {"shops": [{"sale": "TOPZONE", "district": "QUẬN 3", "shop": "AAR_HCM_Q03 - 191 Điện Biên Phủ"}, {"sale": "TOPZONE", "district": "QUẬN 10", "shop": "AAR1_HCM_Q10 - 458 Nguyễn Tri Phương"}, {"sale": "TOPZONE", "district": "QUẬN 4", "shop": "APR_HCM_Q04 - 165 Khánh Hội"}, {"sale": "ĐÀO MINH QUANG", "district": "CẦN GIỜ", "shop": "ĐML_HCM_CGI - 83 Duyên Hải"}, {"sale": "TRẦN ĐẶNG NGUYÊN", "district": "NHÀ BÈ", "shop": "ĐML_HCM_NBE - 506 Nguyễn Văn Tạo"}, {"sale": "TRẦN THÀNH", "district": "QUẬN 1", "shop": "ĐML_HCM_Q01 - 189A Cống Quỳnh"}, {"sale": "TRẦN THÀNH", "district": "QUẬN 3", "shop": "ĐML_HCM_Q03 - 542 Cách Mạng Tháng 8"}, {"sale": "BÙI VŨ PHƯƠNG", "district": "QUẬN 5", "shop": "ĐML_HCM_Q05 - 558 Trần Hưng Đạo"}, {"sale": "TRẦN ĐẶNG NGUYÊN", "district": "QUẬN 7", "shop": "ĐML_HCM_Q07 - 1521 Huỳnh Tấn Phát (Phú Mỹ)"}, {"sale": "BÙI VŨ PHƯƠNG", "district": "QUẬN 7", "shop": "ĐML_HCM_Q07 - 428 Nguyễn Thị Thập"}, {"sale": "TRẦN ĐẶNG NGUYÊN", "district": "QUẬN 7", "shop": "ĐML_HCM_Q07 - 677 Huỳnh Tấn Phát"}, {"sale": "NGUYỄN NGỌC THẠCH", "district": "TÂN BÌNH", "shop": "ĐML_HCM_TBI - 169 Cộng Hòa"}, {"sale": "TRẦN THÀNH", "district": "TÂN BÌNH", "shop": "ĐML_HCM_TBI - 626 Âu Cơ"}, {"sale": "TRẦN ĐẶNG NGUYÊN", "district": "NHÀ BÈ", "shop": "ĐMM_HCM_NBE - Lê Văn Lương (Phước Kiển)"}, {"sale": "ĐINH QUANG ĐỨC", "district": "NHÀ BÈ", "shop": "ĐMM_HCM_NBE - Phú Xuân"}, {"sale": "ĐÀO MINH QUANG", "district": "QUẬN 7", "shop": "ĐMM_HCM_Q07 - 6G Lâm Văn Bền"}, {"sale": "ĐÀO MINH QUANG", "district": "CẦN GIỜ", "shop": "ĐMS_HCM_CGI - Bình Khánh"}, {"sale": "ĐÀO MINH QUANG", "district": "CẦN GIỜ", "shop": "TGD_HCM_CGI - 01CK Đào Cử (Cần Thạnh)"}, {"sale": "ĐINH QUANG ĐỨC", "district": "NHÀ BÈ", "shop": "TGD_HCM_NBE - 1787 Huỳnh Tấn Phát"}, {"sale": "TRẦN ĐẶNG NGUYÊN", "district": "NHÀ BÈ", "shop": "TGD_HCM_NBE - 891 Nguyễn Văn Tạo"}, {"sale": "TRẦN TUẤN NGHĨA", "district": "PHÚ NHUẬN", "shop": "TGD_HCM_PNH - 153B Phan Đăng Lưu"}, {"sale": "PHẠM THỊ THU DIỄM", "district": "QUẬN 1", "shop": "TGD_HCM_Q01 - 128 Trần Quang Khải"}, {"sale": "TÔN THỊ MỸ LINH", "district": "QUẬN 1", "shop": "TGD_HCM_Q01 - 136 Nguyễn Thái Học"}, {"sale": "PHẠM THỊ THU DIỄM", "district": "QUẬN 1", "shop": "TGD_HCM_Q01 - 145 Nguyễn Thị Minh Khai"}, {"sale": "TRẦN THÀNH", "district": "QUẬN 3", "shop": "TGD_HCM_Q03 - 191 Điện Biên Phủ"}, {"sale": "PHẠM THỊ THU DIỄM", "district": "QUẬN 4", "shop": "TGD_HCM_Q04 - 140 Khánh Hội"}, {"sale": "ĐINH QUANG ĐỨC", "district": "QUẬN 4", "shop": "TGD_HCM_Q04 - 179 Tôn Đản"}, {"sale": "BÙI VŨ PHƯƠNG", "district": "QUẬN 5", "shop": "TGD_HCM_Q05 - 176 Nguyễn Tri Phương"}, {"sale": "BÙI VŨ PHƯƠNG", "district": "QUẬN 5", "shop": "TGD_HCM_Q05 - 708 Nguyễn Trãi"}, {"sale": "ĐÀO MINH QUANG", "district": "QUẬN 7", "shop": "TGD_HCM_Q07 - 07 Tân Mỹ"}, {"sale": "ĐINH QUANG ĐỨC", "district": "QUẬN 7", "shop": "TGD_HCM_Q07 - 311A Huỳnh Tấn Phát"}, {"sale": "ĐINH QUANG ĐỨC", "district": "QUẬN 7", "shop": "TGD_HCM_Q07 - 468 Nguyễn Thị Thập"}, {"sale": "PHẠM THỊ THU DIỄM", "district": "QUẬN 10", "shop": "TGD_HCM_Q10 - 228 Đường 3/2"}, {"sale": "TRẦN THÀNH", "district": "QUẬN 10", "shop": "TGD_HCM_Q10 - 252 Đường 3/2"}, {"sale": "TRẦN THÀNH", "district": "QUẬN 10", "shop": "TGD_HCM_Q10 - 304 Tô Hiến Thành"}, {"sale": "NGUYỄN NGỌC THẠCH", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 1A Phan Huy Ích"}, {"sale": "NGUYỄN NGỌC THẠCH", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 205 Bàu Cát"}, {"sale": "TRẦN TUẤN NGHĨA", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 270B Lý Thường Kiệt"}, {"sale": "TRẦN TUẤN NGHĨA", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 330 Cộng Hòa"}, {"sale": "TRẦN TUẤN NGHĨA", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 359 Lê Văn Sỹ"}, {"sale": "TRẦN TUẤN NGHĨA", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 670 Âu Cơ"}, {"sale": "NGUYỄN NGỌC THẠCH", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 848 Lạc Long Quân"}, {"sale": "NGUYỄN NGỌC THẠCH", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 01 Cộng Hoà"}, {"sale": "TOPZONE", "district": "QUẬN 5", "shop": "AAR1_HCM_Q05 - 532 Trần Hưng Đạo"}, {"sale": "TOPZONE", "district": "QUẬN 7", "shop": "AAR_HCM_Q07 - 428 Nguyễn Thị Thập"}, {"sale": "TRẦN TUẤN NGHĨA", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 817 Cách Mạng Tháng 8"}, {"sale": "NGUYỄN NGỌC THẠCH", "district": "TÂN BÌNH", "shop": "TGD_HCM_TBI - 292 Âu Cơ"}, {"sale": "TRẦN TUẤN NGHĨA", "district": "PHÚ NHUẬN", "shop": "TGD_HCM_PNH - 75 Lê Văn Sỹ"}, {"sale": "TOPZONE", "district": "TÂN BÌNH", "shop": "AAR_HCM_TBI - 670 Âu Cơ"}, {"sale": "ĐÀO MINH QUANG", "district": "NHÀ BÈ", "shop": "ĐMS_HCM_NBE - Nhơn Đức"}, {"sale": "ĐINH QUANG ĐỨC", "district": "QUẬN 7", "shop": "TGD_HCM_Q07 - 158 Phạm Hữu Lầu"}, {"sale": "NGUYỄN NGỌC THẠCH", "district": "TÂN BÌNH", "shop": "ĐMM_HCM_TBI - 571 Phạm Văn Bạch"}, {"sale": "BÙI VŨ PHƯƠNG", "district": "QUẬN 5", "shop": "ĐML_HCM_ADO - 98 Nguyễn Tri Phương"}, {"sale": "NGUYỄN NGỌC THẠCH", "district": "TÂN BÌNH", "shop": "ĐMM_HCM_TBI - 326 Trường Chinh"}, {"sale": "TRẦN THÀNH", "district": "QUẬN 10", "shop": "ĐML_HCM_Q10 - 03 Đường 3/2"}, {"sale": "TRẦN THÀNH", "district": "PHÚ NHUẬN", "shop": "ĐML_HCM_PNH - 179 Phan Đăng Lưu"}, {"sale": "ĐINH QUANG ĐỨC", "district": "NHÀ BÈ", "shop": "ĐMM_HCM_NBE - 1970 Huỳnh Tấn Phát"}, {"sale": "ĐÀO MINH QUANG", "district": "QUẬN 7", "shop": "TGD_HCM_Q07 - 853 Huỳnh Tấn Phát"}], "products": {"oppo": [{"n": "Reno16F 5G 8GB/128GB", "p": 13490000}, {"n": "Reno16 5G 8GB/256GB", "p": 18990000}, {"n": "Reno16 Pro 5G 12GB/256GB", "p": 23390000}, {"n": "A6x 4GB/64GB", "p": 4990000}, {"n": "A6 Pro 8GB/256GB", "p": 9400000}, {"n": "A6 Pro 5G 8GB/256GB", "p": 9790000}, {"n": "A6 Pro 5G 12GB/256GB", "p": 10990000}, {"n": "A6t 4GB/64GB", "p": 4990000}, {"n": "A6 8GB/128GB", "p": 9890000}, {"n": "Find X9 5G 16GB/512GB", "p": 26990000}], "other": [{"n": "HONOR 600 Lite 8GB/256GB", "p": 8940000}, {"n": "HONOR X9d 5G 12GB/256GB", "p": 10790000}, {"n": "HONOR X7d 5G 8GB/256GB", "p": 6540000}, {"n": "HONOR 400 5G 12GB/256GB", "p": 12450000}, {"n": "HONOR Play 10 3GB/64GB", "p": 3090000}, {"n": "HONOR X5c Plus 4GB/64GB", "p": 3490000}, {"n": "HONOR X8d 8GB/256GB", "p": 7390000}, {"n": "HONOR X7d 8GB/128GB", "p": 5690000}, {"n": "HONOR X6c 6GB/128GB", "p": 4290000}, {"n": "HONOR X6c 6GB/256GB", "p": 4740000}, {"n": "HONOR 600s 5G 6GB/128GB", "p": 9190000}, {"n": "HONOR 600 8GB/256GB", "p": 14490000}, {"n": "HONOR 600 Pro 12GB/256GB", "p": 22090000}, {"n": "HONOR 600 Pro Molly 12GB/512GB", "p": 23090000}], "xiaomi": [{"n": "Xiaomi 17T 5G 12GB/256GB", "p": 16710000}, {"n": "Xiaomi 17 5G 12GB/256GB", "p": 19490000}, {"n": "Xiaomi 17T Pro 5G 12GB/256GB", "p": 18810000}, {"n": "Redmi Note 17 4G 4GB/128GB", "p": 6490000}, {"n": "Redmi Note 17 4G 6GB/128GB", "p": 7010000}, {"n": "Redmi Note 17 5G 6GB/128GB", "p": 8310000}, {"n": "Redmi Note 17 Pro 8GB/256GB", "p": 6890000}, {"n": "Redmi Note 17 Pro 5G 6GB/256GB", "p": 9810000}, {"n": "Redmi Note 17 Pro+ 5G 12GB/256GB", "p": 9890000}, {"n": "Redmi Note 17 Pro Max 8GB/256GB", "p": 14190000}, {"n": "Redmi Note 17 Pro Max 5G 12GB/256GB", "p": 14810000}, {"n": "Redmi Note 15 8GB/128GB", "p": 4890000}, {"n": "Redmi Note 15 5G 8GB/256GB", "p": 6290000}, {"n": "Redmi 17 4G 4GB/128GB", "p": 5390000}, {"n": "Redmi 17 5G 4GB/256GB", "p": 5990000}, {"n": "Redmi 15 5G 4GB/128GB", "p": 5310000}, {"n": "Redmi 15C 4GB/128GB", "p": 4010000}, {"n": "Redmi A7 Pro 4GB/64GB", "p": 4190000}, {"n": "Redmi A7 3GB/64GB", "p": 3490000}, {"n": "POCO C71 4GB/64GB", "p": 3390000}], "apple": [{"n": "iPhone 15 128GB", "p": 21990000}, {"n": "iPhone 15 Plus 128GB", "p": 19990000}, {"n": "iPhone 16 128GB", "p": 24990000}, {"n": "iPhone 16 Plus 128GB", "p": 24490000}, {"n": "iPhone 16e 128GB", "p": 16990000}, {"n": "iPhone 17 256GB", "p": 26990000}, {"n": "iPhone 17 512GB", "p": 33490000}, {"n": "iPhone 17e 256GB", "p": 20990000}, {"n": "iPhone 17e 512GB", "p": 26990000}, {"n": "iPhone 17 Pro 256GB", "p": 31990000}, {"n": "iPhone 17 Pro Max 256GB", "p": 34990000}, {"n": "iPhone 17 Pro Max 512GB", "p": 40990000}, {"n": "iPhone 17 Pro Max 1TB", "p": 47490000}, {"n": "iPhone Air 256GB", "p": 22990000}, {"n": "iPhone Air 512GB", "p": 28990000}, {"n": "iPhone 18 Pro 256GB", "p": 38990000}, {"n": "iPhone 18 Pro Max 256GB", "p": 41990000}, {"n": "iPhone Duo 256GB", "p": 64990000}], "realme": [{"n": "realme C100x 4GB/128GB", "p": 6090000}, {"n": "realme C100i 4GB/64GB", "p": 4940000}, {"n": "realme C100 4G 8GB/128GB", "p": 7740000}, {"n": "realme 16T 5G 8GB/128GB", "p": 7790000}, {"n": "realme 16 5G 8GB/256GB", "p": 10790000}, {"n": "realme 16 5G 12GB/256GB", "p": 9940000}, {"n": "realme 16 Pro 5G 12GB/256GB", "p": 11940000}, {"n": "realme P4 Power 5G 12GB/256GB", "p": 14490000}, {"n": "realme C85 8GB/128GB", "p": 5940000}, {"n": "realme C85 Pro 8GB/128GB", "p": 5840000}, {"n": "realme C85 Pro 8GB/256GB", "p": 7290000}, {"n": "realme C85 5G 8GB/128GB", "p": 6630000}, {"n": "realme C85 5G 8GB/256GB", "p": 7010000}, {"n": "realme 15 5G 8GB/256GB", "p": 8690000}, {"n": "realme 15 5G 12GB/256GB", "p": 9440000}, {"n": "realme 15T 5G 8GB/256GB", "p": 8390000}, {"n": "realme 14 5G 12GB/256GB", "p": 10050000}, {"n": "realme 15 Pro 5G 12GB/256GB", "p": 12190000}, {"n": "realme Note 80 4GB/64GB", "p": 4250000}], "vivo": [{"n": "vivo X300 Ultra 16GB/512GB", "p": 35990000}, {"n": "vivo X300 Pro 5G 16GB/512GB", "p": 28990000}, {"n": "vivo V70 5G 8GB/256GB", "p": 16820000}, {"n": "vivo V70 FE 5G 8GB/256GB", "p": 13030000}, {"n": "vivo V60 5G 12GB/256GB", "p": 14920000}, {"n": "vivo V60 Lite 5G 8GB/256GB", "p": 9520000}, {"n": "vivo V80 Lite 5G 6GB/128GB", "p": 11990000}, {"n": "vivo V50 Lite 5G 8GB/256GB", "p": 8660000}, {"n": "vivo Y39 5G 8GB/128GB", "p": 6870000}, {"n": "vivo Y39 5G 8GB/256GB", "p": 7420000}, {"n": "vivo Y31d 4GB/128GB", "p": 6740000}, {"n": "vivo Y31d 6GB/128GB", "p": 7640000}, {"n": "vivo Y05e 4GB/64GB", "p": 4040000}, {"n": "vivo Y05 4GB/64GB", "p": 4540000}, {"n": "vivo Y11d 4GB/128GB", "p": 6290000}, {"n": "vivo Y11d 6GB/128GB", "p": 6050000}, {"n": "vivo Y21d 6GB/128GB", "p": 5600000}], "samsung": [{"n": "Galaxy A07 4GB/64GB", "p": 3140000}, {"n": "Galaxy A07 5G 4GB/128GB", "p": 4800000}, {"n": "Galaxy A17 4GB/128GB", "p": 4890000}, {"n": "Galaxy A17 5G 8GB/128GB", "p": 6000000}, {"n": "Galaxy A27 6GB/128GB", "p": 7500000}, {"n": "Galaxy A37 5G 6GB/128GB", "p": 9000000}, {"n": "Galaxy A57 5G 8GB/128GB", "p": 10590000}, {"n": "Galaxy S25 5G 12GB/256GB", "p": 16790000}, {"n": "Galaxy S25 FE 5G 8GB/128GB", "p": 12490000}, {"n": "Galaxy S26 5G 12GB/256GB", "p": 19500000}, {"n": "Galaxy S26+ 5G 12GB/256GB", "p": 22000000}, {"n": "Galaxy S26 Ultra 5G 12GB/256GB", "p": 27500000}, {"n": "Galaxy Z Flip8 5G 12GB/256GB", "p": 25000000}]}};
+const SHOPS = DATA.shops;
+const PRODUCTS = DATA.products;   // {oppo:[{n,p}],...}  (other = HONOR)
+
+const BRANDS = [
+  {k:'oppo',    n:'OPPO',    c:'#10b981'},
+  {k:'samsung', n:'Samsung', c:'#3b82f6'},
+  {k:'xiaomi',  n:'Xiaomi',  c:'#f97316'},
+  {k:'vivo',    n:'Vivo',    c:'#8b5cf6'},
+  {k:'realme',  n:'Realme',  c:'#eab308'},
+  {k:'apple',   n:'iPhone',  c:'#475569'},
+  {k:'other',   n:'Other',   c:'#ec4899'},
+];
+const SEGS = [
+  {n:'3–5 triệu',   max:5e6},
+  {n:'5–7 triệu',   max:7e6},
+  {n:'7–10 triệu',  max:10e6},
+  {n:'10–15 triệu', max:15e6},
+  {n:'15–20 triệu', max:20e6},
+  {n:'20–30 triệu', max:30e6},
+  {n:'Trên 30 triệu', max:Infinity},
+];
+const SEG_COLORS = ['#a5b4fc','#818cf8','#6366f1','#4f46e5','#4338ca','#3730a3','#1e1b4b'];
+const BRAND_LABEL = Object.fromEntries(BRANDS.map(b=>[b.k,b.n]));
+const segIndex = p => SEGS.findIndex(s => p < s.max);
+
+/* ======== TIỆN ÍCH ======== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n||0).toLocaleString('vi-VN');
+const fmtMoney = n => n >= 1e9 ? (n/1e9).toLocaleString('vi-VN',{maximumFractionDigits:2})+' tỷ'
+                    : (n/1e6).toLocaleString('vi-VN',{maximumFractionDigits:1})+' triệu';
+const pad = n => String(n).padStart(2,'0');
+const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const monthOf = d => d.slice(0,7);
+const monthLabel = m => `${m.slice(5)}/${m.slice(0,4)}`;
+const dateLabel = d => `${d.slice(8)}/${d.slice(5,7)}/${d.slice(0,4)}`;
+const sum = a => a.reduce((x,y)=>x+y,0);
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const emptyB = () => Object.fromEntries(BRANDS.map(b=>[b.k,0]));
+const entryBrandTotal = e => sum(BRANDS.map(b=>e.b[b.k]||0));
+const entrySegTotal = e => sum(e.s);
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2400); }
+
+/* ======== LƯU TRỮ (localStorage) ======== */
+const KEY='sellout_dashboard_v1', KEY_T='sellout_dashboard_target_v1';
+let entries = [];
+let targets = {};
+try { entries = JSON.parse(localStorage.getItem(KEY)||'[]') || []; } catch(e){ entries=[]; }
+try { targets = JSON.parse(localStorage.getItem(KEY_T)||'{}') || {}; } catch(e){ targets={}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(entries)); localStorage.setItem(KEY_T, JSON.stringify(targets)); } catch(e){ toast('Không lưu được vào trình duyệt (bị chặn?)'); } };
+
+/* ======== TRẠNG THÁI UI ======== */
+let curMonth = monthOf(todayStr());
+let curTab = 'brand';
+let editingId = null;
+let pending = [];          // sản phẩm đã chọn trong form
+
+/* ======== FORM ======== */
+function buildForm(){
+  const sales=[...new Set(SHOPS.map(s=>s.sale))].sort((a,b)=>a.localeCompare(b));
+  $('fSaleSel').innerHTML='<option value="">— Tất cả Sale man —</option>'+sales.map(s=>`<option value="${esc(s)}">${esc(s)} (${SHOPS.filter(x=>x.sale===s).length} shop)</option>`).join('');
+  fillShopList();
+  $('brandInputs').innerHTML = BRANDS.map(b=>`
+    <label class="block">
+      <span class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1"><i class="inline-block w-2.5 h-2.5 rounded-full" style="background:${b.c}"></i>${b.n}</span>
+      <input type="number" inputmode="numeric" min="0" step="1" value="0" data-brand="${b.k}" class="field num">
+    </label>`).join('');
+  $('segInputs').innerHTML = SEGS.map((s,i)=>`
+    <label class="block">
+      <span class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mb-1"><i class="inline-block w-2.5 h-2.5 rounded-full" style="background:${SEG_COLORS[i]}"></i>${s.n}</span>
+      <input type="number" inputmode="numeric" min="0" step="1" value="0" data-seg="${i}" class="field num">
+    </label>`).join('');
+  $('pBrand').innerHTML = BRANDS.map(b=>`<option value="${b.k}">${b.n}${b.k==='other'?' (HONOR)':''}</option>`).join('');
+  fillModels();
+  document.querySelectorAll('#brandInputs input,#segInputs input').forEach(i=>{
+    i.addEventListener('input', updateSums);
+    i.addEventListener('focus', ()=>i.select());
+  });
+  $('fDate').value = todayStr();
+}
+function fillModels(){
+  const list = PRODUCTS[$('pBrand').value] || [];
+  $('pModel').innerHTML = list.map((p,i)=>`<option value="${i}">${esc(p.n)} — ${fmt(p.p)}₫</option>`).join('');
+}
+function readBrand(){ const o={}; document.querySelectorAll('[data-brand]').forEach(i=>o[i.dataset.brand]=Math.max(0,parseInt(i.value)||0)); return o; }
+function readSeg(){ return SEGS.map((_,i)=>Math.max(0,parseInt(document.querySelector(`[data-seg="${i}"]`).value)||0)); }
+function setBrand(o){ document.querySelectorAll('[data-brand]').forEach(i=>i.value=o[i.dataset.brand]||0); }
+function setSeg(a){ document.querySelectorAll('[data-seg]').forEach(i=>i.value=a[+i.dataset.seg]||0); }
+function bump(sel, d){ const el=document.querySelector(sel); el.value = Math.max(0,(parseInt(el.value)||0)+d); }
+
+function updateSums(){
+  const b=sum(Object.values(readBrand())), s=sum(readSeg());
+  $('sumBrand').textContent=fmt(b); $('sumSeg').textContent=fmt(s);
+  const msg=$('formMsg');
+  if ((b||s) && b!==s){ msg.textContent=`⚠ Tổng theo hãng (${fmt(b)}) khác tổng theo phân khúc (${fmt(s)}) — vẫn có thể lưu, nhưng nên kiểm tra lại.`; msg.className='text-sm text-amber-600 font-medium'; }
+  else { msg.textContent=''; msg.className='text-sm text-slate-500'; }
+}
+function renderChips(){
+  $('chips').innerHTML = pending.length ? pending.map((p,i)=>`
+    <span class="chip">${esc(p.model)} <b>×${p.qty}</b><button type="button" data-rm="${i}" title="Bỏ">×</button></span>`).join('')
+    : '<span class="text-xs text-slate-400">Chưa chọn sản phẩm nào.</span>';
+}
+function addProduct(){
+  const brand=$('pBrand').value, p=(PRODUCTS[brand]||[])[+$('pModel').value];
+  const qty=Math.max(1,parseInt($('pQty').value)||1);
+  if(!p) return;
+  const ex = pending.find(x=>x.brand===brand && x.model===p.n);
+  if (ex) ex.qty+=qty; else pending.push({brand, model:p.n, price:p.p, qty});
+  if ($('autoAdd').checked){ bump(`[data-brand="${brand}"]`, qty); bump(`[data-seg="${segIndex(p.p)}"]`, qty); updateSums(); }
+  $('pQty').value=1; renderChips();
+}
+function removeProduct(i){
+  const p=pending[i]; if(!p) return;
+  if ($('autoAdd').checked){ bump(`[data-brand="${p.brand}"]`, -p.qty); bump(`[data-seg="${segIndex(p.price)}"]`, -p.qty); updateSums(); }
+  pending.splice(i,1); renderChips();
+}
+const shopDone = (shop,date) => entries.filter(e=>e.shop===shop && e.date===date);
+function fillShopList(){
+  const sale=$('fSaleSel').value;
+  $('shopList').innerHTML = SHOPS.filter(s=>!sale||s.sale===sale).map(s=>`<option value="${esc(s.shop)}">${esc(s.sale)} · ${esc(s.district)}</option>`).join('');
+}
+function renderPicker(){
+  const sale=$('fSaleSel').value, date=$('fDate').value, cur=($('fShop').value||'').trim();
+  if(!sale){ $('pickerTitle').textContent='Chọn Sale man ở trên để hiện danh sách shop phụ trách.'; $('shopPicker').innerHTML=''; return; }
+  const list=SHOPS.filter(s=>s.sale===sale);
+  const done=list.filter(s=>shopDone(s.shop,date).length).length;
+  $('pickerTitle').textContent=`${sale} — ${list.length} shop · đã nhập ${done}/${list.length}${date?' ngày '+dateLabel(date):''}`;
+  $('shopPicker').innerHTML=list.map(s=>{
+    const n=sum(shopDone(s.shop,date).map(entryBrandTotal)), has=shopDone(s.shop,date).length>0;
+    return `<button type="button" class="shopbtn ${has?'done':''} ${s.shop===cur?'sel':''}" data-shop="${esc(s.shop)}" title="${esc(s.shop)}">
+      <span class="font-semibold">${esc(shortShop(s.shop))}</span><small>${esc(s.district)}${has?` · ✓ ${n} máy`:''}</small></button>`; }).join('');
+}
+function pickShop(name){ $('fShop').value=name; onShopInput(); const f=document.querySelector('[data-brand]'); if(f) f.focus(); }
+function advanceShop(sale, justShop, date){
+  const list=SHOPS.filter(s=>s.sale===sale), idx=list.findIndex(s=>s.shop===justShop);
+  const order=list.slice(idx+1).concat(list.slice(0,Math.max(idx,0)));
+  const next=order.find(s=>!shopDone(s.shop,date).length);
+  if(next) pickShop(next.shop);
+  else toast(`Đã nhập đủ ${list.length} shop của ${sale} cho ngày ${dateLabel(date)} ✓`);
+}
+function findShop(){ const v=$('fShop').value.trim().toLowerCase(); return SHOPS.find(s=>s.shop.toLowerCase()===v); }
+function onShopInput(){ const s=findShop(); if(s && $('fSaleSel').value!==s.sale){ $('fSaleSel').value=s.sale; fillShopList(); } $('fDist').value=s?s.district:''; renderPicker(); }
+
+function resetForm(keepDate=true){
+  const d=$('fDate').value;
+  editingId=null; pending=[];
+  $('fShop').value=''; onShopInput();
+  setBrand({}); setSeg([]); updateSums(); renderChips();
+  $('fDate').value = keepDate&&d ? d : todayStr();
+  $('btnAdd').textContent='＋ Thêm dữ liệu';
+  $('btnCancel').classList.add('hidden'); $('editBadge').classList.add('hidden');
+  $('formTitle').textContent='Nhập số liệu bán hàng';
+}
+
+function submitForm(){
+  const date=$('fDate').value, shop=findShop();
+  if(!date){ toast('Hãy chọn ngày bán'); $('fDate').focus(); return; }
+  if(!shop){ toast('Hãy chọn một shop có trong danh sách'); $('fShop').focus(); return; }
+  const b=readBrand(), s=readSeg();
+  if (sum(Object.values(b))===0 && sum(s)===0 && !pending.length){ toast('Chưa nhập số liệu nào (>0)'); return; }
+  const prevRec = editingId ? entries.find(e=>e.id===editingId) : null;
+  const rec = { id: editingId||uid(), date, shop:shop.shop, sale:shop.sale, district:shop.district, b, s, items: pending.map(p=>({...p})), by: cfg.by || (prevRec&&prevRec.by) || '' };
+  if (editingId){ const i=entries.findIndex(e=>e.id===editingId); if(i>=0) entries[i]=rec; else entries.push(rec); toast('Đã cập nhật dòng dữ liệu'); }
+  else { entries.push(rec); toast('Đã thêm dữ liệu — KPI đã cập nhật'); }
+  save(); queueOp({op:'upsert',entry:rec});
+  curMonth = monthOf(date);
+  const wasEdit = !!editingId, saleNow = $('fSaleSel').value;
+  resetForm(true);
+  refresh();
+  if(!wasEdit && saleNow) advanceShop(saleNow, shop.shop, date);
+}
+function editEntry(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  editingId=id;
+  $('fDate').value=e.date; $('fShop').value=e.shop; onShopInput();
+  setBrand(e.b); setSeg(e.s); pending=e.items.map(x=>({...x})); updateSums(); renderChips();
+  $('btnAdd').textContent='💾 Cập nhật dữ liệu';
+  $('btnCancel').classList.remove('hidden'); $('editBadge').classList.remove('hidden');
+  $('formTitle').textContent='Chỉnh sửa dòng dữ liệu';
+  window.scrollTo({top:$('formTitle').offsetTop-80, behavior:'smooth'});
+}
+function deleteEntry(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  if(!confirm(`Xóa dòng ${dateLabel(e.date)} — ${e.shop}?`)) return;
+  entries=entries.filter(x=>x.id!==id); save(); queueOp({op:'delete',id});
+  if(editingId===id) resetForm();
+  refresh(); toast('Đã xóa dòng dữ liệu');
+}
+
+/* ======== TỔNG HỢP ======== */
+const inMonth = (m=curMonth) => entries.filter(e=>monthOf(e.date)===m);
+function aggregate(list){
+  const brand=emptyB(), seg=SEGS.map(()=>0), shop={}, day={}, revenue={v:0,n:0};
+  list.forEach(e=>{
+    BRANDS.forEach(b=>brand[b.k]+=e.b[b.k]||0);
+    e.s.forEach((v,i)=>seg[i]+=v||0);
+    const t=entryBrandTotal(e);
+    shop[e.shop]=(shop[e.shop]||0)+t;
+    const d=+e.date.slice(8);
+    day[d]=day[d]||emptyB(); BRANDS.forEach(b=>day[d][b.k]+=e.b[b.k]||0);
+    e.items.forEach(p=>{ revenue.v+=p.price*p.qty; revenue.n+=p.qty; });
+  });
+  return {brand, seg, shop, day, revenue, total:sum(Object.values(brand))};
+}
+
+/* ======== KPI ======== */
+function renderKPIs(a, list){
+  const days=new Set(list.map(e=>e.date)).size;
+  const shopsActive=new Set(list.filter(e=>entryBrandTotal(e)>0).map(e=>e.shop)).size;
+  const top = BRANDS.map(b=>({n:b.n,c:b.c,v:a.brand[b.k]})).sort((x,y)=>y.v-x.v)[0];
+  const target = targets[curMonth]||0;
+  const pct = target ? Math.min(100, a.total/target*100) : 0;
+  const card=(label,value,sub,extra='')=>`
+    <div class="card p-3 sm:p-5">
+      <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">${label}</p>
+      <p class="text-2xl sm:text-3xl font-extrabold mt-1 tabular-nums">${value}</p>
+      <p class="text-xs text-slate-500 mt-1">${sub}</p>${extra}
+    </div>`;
+  $('kpis').innerHTML =
+    card('Tổng số máy bán ra', fmt(a.total), `Tháng ${monthLabel(curMonth)} · TB ${days?fmt(Math.round(a.total/days)):0}/ngày`,
+      `<div class="mt-3"><div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+        <span>Mục tiêu: <input id="targetInp" type="number" min="0" value="${target||''}" placeholder="nhập" class="w-20 border-b border-slate-300 focus:border-indigo-500 outline-none text-slate-800 font-semibold text-right bg-transparent"></span>
+        <b class="text-slate-700">${target?pct.toFixed(0)+'%':'—'}</b></div>
+        <div class="h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style="width:${pct}%"></div></div></div>`)
+  + card('Hãng dẫn đầu', a.total&&top.v?`<span style="color:${top.c}">${top.n}</span>`:'—', a.total&&top.v?`${fmt(top.v)} máy · ${(top.v/a.total*100).toFixed(1)}% thị phần`:'Chưa có dữ liệu')
+  + card('Doanh thu ước tính', a.revenue.n?fmtMoney(a.revenue.v):'—', a.revenue.n?`Từ ${fmt(a.revenue.n)} máy đã chọn model (giá niêm yết)`:'Tính từ các model bạn chọn ở mục ③')
+  + card('Shop có phát sinh', `${shopsActive}<span class="text-lg text-slate-400 font-semibold"> / ${SHOPS.length}</span>`, `${fmt(list.length)} dòng nhập · ${days} ngày có dữ liệu`);
+  const ti=$('targetInp');
+  ti.addEventListener('change',()=>{ targets[curMonth]=Math.max(0,parseInt(ti.value)||0); save(); refresh(); });
+}
+
+/* ======== BIỂU ĐỒ ======== */
+Chart.defaults.font.family = '"Be Vietnam Pro", system-ui, sans-serif';
+Chart.defaults.color = '#64748b';
+if (window.innerWidth < 640) Chart.defaults.font.size = 10;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.boxWidth = 8;
+const charts = {};
+function upsert(id, cfg){
+  if (charts[id]) { charts[id].data = cfg.data; charts[id].options = cfg.options; charts[id].update(); }
+  else charts[id] = new Chart($(id), cfg);
+}
+const baseOpt = { responsive:true, maintainAspectRatio:false, animation:{duration:350} };
+function renderCharts(a){
+  document.querySelectorAll('.monthLbl').forEach(el=>el.textContent=monthLabel(curMonth));
+  const [y,m]=curMonth.split('-').map(Number), dim=new Date(y,m,0).getDate();
+  const labels=Array.from({length:dim},(_,i)=>i+1);
+  upsert('chDaily',{ type:'bar',
+    data:{ labels, datasets:BRANDS.map(b=>({label:b.n, backgroundColor:b.c, borderRadius:2, data:labels.map(d=>(a.day[d]||{})[b.k]||0)})) },
+    options:{...baseOpt, scales:{x:{stacked:true,grid:{display:false}}, y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}, plugins:{legend:{position:'bottom'}, tooltip:{mode:'index'}}} });
+  const hasB=a.total>0;
+  upsert('chBrand',{ type:'doughnut',
+    data:{ labels:BRANDS.map(b=>b.n), datasets:[{data:hasB?BRANDS.map(b=>a.brand[b.k]):[1], backgroundColor:hasB?BRANDS.map(b=>b.c):['#e2e8f0'], borderWidth:2, borderColor:'#fff'}] },
+    options:{...baseOpt, cutout:'62%', plugins:{legend:{position:'bottom'}, tooltip:{enabled:hasB, callbacks:{label:c=>` ${c.label}: ${fmt(c.parsed)} (${(c.parsed/a.total*100).toFixed(1)}%)`}}}} });
+  upsert('chSeg',{ type:'bar',
+    data:{ labels:SEGS.map(s=>s.n.replace(' triệu','tr').replace('Trên ','>')), datasets:[{label:'Số máy', data:a.seg, backgroundColor:SEG_COLORS, borderRadius:6}] },
+    options:{...baseOpt, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{beginAtZero:true,ticks:{precision:0}}}} });
+  const top=Object.entries(a.shop).filter(([,v])=>v>0).sort((x,y)=>y[1]-x[1]).slice(0,10);
+  upsert('chShop',{ type:'bar',
+    data:{ labels:top.map(([k])=>k.replace(/^[^_]*_HCM_/,'')), datasets:[{label:'Số máy', data:top.map(([,v])=>v), backgroundColor:'#6366f1', borderRadius:4}] },
+    options:{...baseOpt, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{title:i=>top[i[0].dataIndex][0]}}}, scales:{y:{grid:{display:false},ticks:{font:{size:10}}}, x:{beginAtZero:true,ticks:{precision:0}}}} });
+  const months=[...new Set(entries.map(e=>monthOf(e.date)).concat(curMonth))].sort();
+  const mt=months.map(mm=>sum(inMonth(mm).map(entryBrandTotal)));
+  upsert('chMonth',{ type:'bar',
+    data:{ labels:months.map(monthLabel), datasets:[
+      {type:'line',label:'Xu hướng',data:mt,borderColor:'#f97316',backgroundColor:'#f97316',tension:.3,pointRadius:4,order:0},
+      {label:'Tổng số máy',data:mt,backgroundColor:months.map(mm=>mm===curMonth?'#4f46e5':'#c7d2fe'),borderRadius:6,order:1}] },
+    options:{...baseOpt, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{beginAtZero:true,ticks:{precision:0}}}} });
+}
+
+/* ======== BẢNG ======== */
+const matchQ = (e,q) => !q || [e.shop,e.sale,e.district,e.date,dateLabel(e.date)].join(' ').toLowerCase().includes(q);
+const actBtns = id => `<td class="text-right"><button class="text-indigo-600 hover:underline mr-3" data-edit="${id}">Sửa</button><button class="text-red-500 hover:underline" data-del="${id}">Xóa</button></td>`;
+function renderTable(){
+  const q=$('search').value.trim().toLowerCase();
+  const list=inMonth().filter(e=>matchQ(e,q)).sort((x,y)=>y.date.localeCompare(x.date)||y.id.localeCompare(x.id));
+  $('btnExportShop').classList.toggle('hidden', curTab!=='shop');
+  let html='';
+  const empty = cols => `<tr><td colspan="${cols}" class="text-center text-slate-400 py-10">Chưa có dữ liệu trong tháng ${monthLabel(curMonth)}. Hãy nhập ở form phía trên.</td></tr>`;
+  if (curTab==='brand'){
+    html=`<table class="dt"><thead><tr><th>Ngày</th><th>Shop</th><th>Sale man</th>${BRANDS.map(b=>`<th class="num">${b.n}</th>`).join('')}<th class="num">Tổng</th><th></th></tr></thead><tbody>`
+      + (list.map(e=>`<tr><td>${dateLabel(e.date)}</td><td>${esc(e.shop)}</td><td>${esc(e.sale)}</td>${BRANDS.map(b=>`<td class="num">${fmt(e.b[b.k])}</td>`).join('')}<td class="num font-bold">${fmt(entryBrandTotal(e))}</td>${actBtns(e.id)}</tr>`).join('')||empty(12))
+      + `</tbody><tfoot><tr><td colspan="3">Tổng (${list.length} dòng)</td>${BRANDS.map(b=>`<td class="num">${fmt(sum(list.map(e=>e.b[b.k]||0)))}</td>`).join('')}<td class="num">${fmt(sum(list.map(entryBrandTotal)))}</td><td></td></tr></tfoot></table>`;
+  } else if (curTab==='seg'){
+    html=`<table class="dt"><thead><tr><th>Ngày</th><th>Shop</th><th>Sale man</th>${SEGS.map(s=>`<th class="num">${s.n.replace(' triệu','tr').replace('Trên ','>')}</th>`).join('')}<th class="num">Tổng</th><th></th></tr></thead><tbody>`
+      + (list.map(e=>`<tr><td>${dateLabel(e.date)}</td><td>${esc(e.shop)}</td><td>${esc(e.sale)}</td>${e.s.map(v=>`<td class="num">${fmt(v)}</td>`).join('')}<td class="num font-bold">${fmt(entrySegTotal(e))}</td>${actBtns(e.id)}</tr>`).join('')||empty(12))
+      + `</tbody><tfoot><tr><td colspan="3">Tổng (${list.length} dòng)</td>${SEGS.map((_,i)=>`<td class="num">${fmt(sum(list.map(e=>e.s[i]||0)))}</td>`).join('')}<td class="num">${fmt(sum(list.map(entrySegTotal)))}</td><td></td></tr></tfoot></table>`;
+  } else if (curTab==='prod'){
+    const rows=[]; list.forEach(e=>e.items.forEach(p=>rows.push({e,p})));
+    html=`<table class="dt"><thead><tr><th>Ngày</th><th>Shop</th><th>Hãng</th><th>Model</th><th class="num">Đơn giá</th><th class="num">SL</th><th class="num">Thành tiền</th><th></th></tr></thead><tbody>`
+      + (rows.map(({e,p})=>`<tr><td>${dateLabel(e.date)}</td><td>${esc(e.shop)}</td><td>${BRAND_LABEL[p.brand]||''}</td><td>${esc(p.model)}</td><td class="num">${fmt(p.price)}₫</td><td class="num">${p.qty}</td><td class="num font-semibold">${fmt(p.price*p.qty)}₫</td>${actBtns(e.id)}</tr>`).join('')||empty(8))
+      + `</tbody><tfoot><tr><td colspan="5">Tổng</td><td class="num">${fmt(sum(rows.map(r=>r.p.qty)))}</td><td class="num">${fmt(sum(rows.map(r=>r.p.price*r.p.qty)))}₫</td><td></td></tr></tfoot></table>`;
+  } else {
+    const rows=shopSummary(q);
+    html=`<table class="dt"><thead><tr><th>Sale man</th><th>Quận</th><th>Shop</th>${BRANDS.map(b=>`<th class="num">${b.n}</th>`).join('')}<th class="num">Tổng</th></tr></thead><tbody>`
+      + rows.map(r=>`<tr><td>${esc(r.sale)}</td><td>${esc(r.district)}</td><td>${esc(r.shop)}</td>${BRANDS.map(b=>`<td class="num ${r.b[b.k]?'':'text-slate-300'}">${fmt(r.b[b.k])}</td>`).join('')}<td class="num font-bold">${fmt(r.total)}</td></tr>`).join('')
+      + `</tbody><tfoot><tr><td colspan="3">Grand Total — tháng ${monthLabel(curMonth)}</td>${BRANDS.map(b=>`<td class="num">${fmt(sum(rows.map(r=>r.b[b.k])))}</td>`).join('')}<td class="num">${fmt(sum(rows.map(r=>r.total)))}</td></tr></tfoot></table>`;
+  }
+  $('tableWrap').innerHTML=html;
+}
+function shopSummary(q=''){
+  const map=new Map(SHOPS.map(s=>[s.shop,{...s,b:emptyB(),total:0}]));
+  inMonth().forEach(e=>{ const r=map.get(e.shop); if(!r) return; BRANDS.forEach(b=>r.b[b.k]+=e.b[b.k]||0); r.total+=entryBrandTotal(e); });
+  return [...map.values()].filter(r=>!q||[r.shop,r.sale,r.district].join(' ').toLowerCase().includes(q));
+}
+
+/* ======== XUẤT CSV / XÓA ======== */
+function downloadCSV(name, rows){
+  const csv='﻿'+rows.map(r=>r.map(v=>{ v=String(v??''); return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }).join(',')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function exportAll(){
+  if(!entries.length){ toast('Chưa có dữ liệu để xuất'); return; }
+  const head=['Ngày','Sale man','Quận','Shop',...BRANDS.map(b=>b.n),'Tổng theo hãng',...SEGS.map(s=>s.n),'Tổng theo phân khúc','Sản phẩm đã bán'];
+  const rows=[...entries].sort((x,y)=>x.date.localeCompare(y.date)).map(e=>[dateLabel(e.date),e.sale,e.district,e.shop,
+    ...BRANDS.map(b=>e.b[b.k]||0),entryBrandTotal(e),...e.s,entrySegTotal(e),e.items.map(p=>`${p.model} x${p.qty}`).join(' | ')]);
+  downloadCSV(`sellout_${todayStr()}.csv`,[head,...rows]); toast(`Đã xuất ${rows.length} dòng`);
+}
+function exportShop(){
+  const rows=shopSummary(); downloadCSV(`tonghop_shop_${curMonth}.csv`,[['Sale man','Quận','Shop',...BRANDS.map(b=>b.n),'Tổng'],...rows.map(r=>[r.sale,r.district,r.shop,...BRANDS.map(b=>r.b[b.k]),r.total])]);
+}
+async function clearAll(){
+  if(connected()){
+    const k=prompt('⚠ XÓA TOÀN BỘ dữ liệu trên Google Sheets — mọi người sẽ mất dữ liệu.\nNhập mật khẩu quản lý (ADMIN_KEY) để xác nhận:');
+    if(!k) return;
+    try{ setSync('syncing'); await callApi(cfg.url,cfg.key,{action:'clear',adminKey:k}); queue=[]; saveQueue(); entries=[]; targets={}; save(); resetForm(); refresh(); setSync('ok'); toast('Đã xóa toàn bộ dữ liệu trên Google Sheets'); }
+    catch(e){ setSync('error',e.message); toast('Không xóa được: '+e.message); }
+    return;
+  }
+  if(!entries.length){ toast('Không có dữ liệu để xóa'); return; }
+  if(!confirm(`Xóa TOÀN BỘ ${entries.length} dòng dữ liệu?\nHành động này không thể hoàn tác (hãy xuất CSV trước nếu cần sao lưu).`)) return;
+  entries=[]; targets={}; save(); resetForm(); refresh(); toast('Đã xóa toàn bộ dữ liệu');
+}
+
+/* ======== THỊ PHẦN & GAP OPPO – XIAOMI ======== */
+let shareDay='month', shareSort='default';
+const shortShop = s => s.replace('_HCM_','_');
+const tot = b => sum(BRANDS.map(x=>b[x.k]||0));
+const gapOf = b => { const t=tot(b); return t ? ((b.oppo||0)-(b.xiaomi||0))/t*100 : null; };
+const fmtGap = (g,d=0) => g===null ? '' : (g>0?'+':'')+g.toFixed(d);
+const gapBadge = g => g===null ? '<span class="text-slate-300">—</span>'
+  : g>=5 ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Dẫn trước</span>'
+  : g<=-5 ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Thua</span>'
+  : '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Cân bằng</span>';
+const gapBg = g => { if(g===null||g===0) return ''; const c=`${g>0?'rgba(16,185,129,':'rgba(239,68,68,'}${Math.min(.6,Math.abs(g)/100*.9+.08).toFixed(2)})`; return `background:linear-gradient(${c},${c}),#fff`; };
+
+function shopRows(list){
+  const map=new Map(SHOPS.map(s=>[s.shop,{...s,m:emptyB(),d:{}}]));
+  list.forEach(e=>{
+    if(!map.has(e.shop)) map.set(e.shop,{shop:e.shop,sale:e.sale,district:e.district,m:emptyB(),d:{}});
+    const r=map.get(e.shop), dd=+e.date.slice(8); r.d[dd]=r.d[dd]||emptyB();
+    BRANDS.forEach(b=>{ const v=e.b[b.k]||0; r.m[b.k]+=v; r.d[dd][b.k]+=v; });
+  });
+  return [...map.values()];
+}
+const rowB = r => shareDay==='month' ? r.m : (r.d[shareDay]||emptyB());
+function sortRows(rows){
+  if(shareSort==='default') return rows;
+  const key = r => { const b=rowB(r); return shareSort==='total'?tot(b) : shareSort==='oppo'?(tot(b)?b.oppo/tot(b):-1) : gapOf(b); };
+  const dir = shareSort==='gapAsc' ? 1 : -1;
+  return [...rows].sort((x,y)=>{ const a=key(x), b=key(y);
+    if(a===null&&b===null) return 0; if(a===null) return 1; if(b===null) return -1; return (a-b)*dir; });
+}
+
+function renderInsight(){
+  const list=inMonth(), q=$('shareSearch').value.trim().toLowerCase();
+  const all=shopRows(list);
+  // danh sách ngày có dữ liệu
+  const days=[...new Set(list.map(e=>+e.date.slice(8)))].sort((a,b)=>a-b);
+  if(shareDay!=='month' && !days.includes(+shareDay)) shareDay='month';
+  $('shareDay').innerHTML=`<option value="month">Tổng tháng ${monthLabel(curMonth)}</option>`+days.map(d=>`<option value="${d}" ${String(d)===String(shareDay)?'selected':''}>Ngày ${pad(d)}/${curMonth.slice(5)}</option>`).join('');
+  $('shareDay').value=shareDay;
+  const modeTxt = shareDay==='month' ? `Tổng tháng ${monthLabel(curMonth)}` : `Ngày ${pad(shareDay)}/${curMonth.slice(5)}`;
+  document.querySelectorAll('.modeLbl').forEach(el=>el.textContent=modeTxt);
+
+  const rows=sortRows(all.filter(r=>!q||[r.shop,r.sale,r.district].join(' ').toLowerCase().includes(q)));
+
+  // tổng thị trường (toàn bộ shop, không bị lọc)
+  const mk=emptyB(); all.forEach(r=>{ const b=rowB(r); BRANDS.forEach(x=>mk[x.k]+=b[x.k]||0); });
+  const mt=tot(mk);
+  $('shareTiles').innerHTML=BRANDS.map(b=>{
+    const p=mt?mk[b.k]/mt*100:0;
+    return `<div class="rounded-xl border border-slate-200 p-3 ${b.k==='oppo'?'ring-2 ring-emerald-200':''}" style="border-top:4px solid ${b.c}">
+      <div class="text-xs font-semibold text-slate-500">${b.n}</div>
+      <div class="text-2xl font-extrabold tabular-nums" style="color:${b.c}">${p.toFixed(1)}%</div>
+      <div class="text-xs text-slate-500">${fmt(mk[b.k])} máy</div></div>`; }).join('');
+
+  // bảng thị phần
+  const cell=(b,k,t)=>{ if(!t) return '<td class="num text-slate-300">—</td>';
+    const p=b[k]/t*100, c=BRANDS.find(x=>x.k===k).c, mx=Math.max(...BRANDS.map(x=>b[x.k]||0));
+    return `<td class="num ${b[k]===mx&&mx>0?'font-bold text-slate-900':'text-slate-600'}" style="background:linear-gradient(90deg,${c}40 ${p}%,transparent ${p}%)">${p.toFixed(1)}%</td>`; };
+  $('shareTable').innerHTML=`<table class="dt"><thead><tr><th>Sale man</th><th>Quận</th><th>Shop</th>${BRANDS.map(b=>`<th class="num">${b.n}</th>`).join('')}<th class="num">Tổng máy</th><th class="num">GAP O−X</th></tr></thead><tbody>`
+    + rows.map(r=>{ const b=rowB(r), t=tot(b), g=gapOf(b);
+        return `<tr><td>${esc(r.sale)}</td><td>${esc(r.district)}</td><td>${esc(r.shop)}</td>${BRANDS.map(x=>cell(b,x.k,t)).join('')}<td class="num font-semibold">${t?fmt(t):'<span class="text-slate-300">0</span>'}</td><td class="num font-bold" style="${gapBg(g)}">${g===null?'<span class="text-slate-300 font-normal">—</span>':fmtGap(g,1)}</td></tr>`; }).join('')
+    + `</tbody><tfoot><tr><td colspan="3">THỊ PHẦN CHUNG (${rows.length}/${all.length} shop hiển thị · toàn bộ shop)</td>${BRANDS.map(b=>`<td class="num">${mt?(mk[b.k]/mt*100).toFixed(1)+'%':'—'}</td>`).join('')}<td class="num">${fmt(mt)}</td><td class="num">${mt?fmtGap(gapOf(mk),1):'—'}</td></tr></tfoot></table>`;
+
+  // biểu đồ
+  const lbl=rows.map(r=>shortShop(r.shop)), h=Math.max(260,rows.length*22+70);
+  $('shareChartBox').style.height=h+'px'; $('gapChartBox').style.height=h+'px';
+  upsert('chShare',{ type:'bar',
+    data:{ labels:lbl, datasets:BRANDS.map(b=>({label:b.n, backgroundColor:b.c, data:rows.map(r=>{const x=rowB(r),t=tot(x);return t?x[b.k]/t*100:0;})})) },
+    options:{...baseOpt, indexAxis:'y', plugins:{legend:{position:'top'}, tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.x.toFixed(1)}%`}}},
+      scales:{x:{stacked:true,min:0,max:100,ticks:{callback:v=>v+'%'}}, y:{stacked:true,grid:{display:false},ticks:{font:{size:10},autoSkip:false}}}} });
+  const gaps=rows.map(r=>gapOf(rowB(r)));
+  upsert('chGap',{ type:'bar',
+    data:{ labels:lbl, datasets:[{label:'GAP OPPO − Xiaomi', data:gaps.map(g=>g===null?0:g), backgroundColor:gaps.map(g=>g===null?'#e2e8f0':g>=0?'#10b981':'#ef4444'), borderRadius:3}] },
+    options:{...baseOpt, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>gaps[c.dataIndex]===null?' Chưa có số bán':` GAP: ${fmtGap(gaps[c.dataIndex],1)} điểm %`}}},
+      scales:{x:{min:-100,max:100,ticks:{callback:v=>v+'%'}}, y:{grid:{display:false},ticks:{font:{size:10},autoSkip:false}}}} });
+
+  renderGap(rows, mk, list);
+  renderSale();
+}
+
+function renderGap(rows, mk, list){
+  const [y,m]=curMonth.split('-').map(Number), dim=new Date(y,m,0).getDate();
+  const g=gapOf(mk), mt=tot(mk);
+  const withSales=rows.filter(r=>tot(rowB(r))>0);
+  const lead=withSales.filter(r=>gapOf(rowB(r))>=5).length, lag=withSales.filter(r=>gapOf(rowB(r))<=-5).length, bal=withSales.length-lead-lag;
+  const worst=[...withSales].sort((a,b)=>gapOf(rowB(a))-gapOf(rowB(b)))[0];
+  const tile=(l,v,s,cls='')=>`<div class="rounded-xl border border-slate-200 p-3"><div class="text-xs font-semibold text-slate-500">${l}</div><div class="text-2xl font-extrabold tabular-nums ${cls}">${v}</div><div class="text-xs text-slate-500 truncate">${s}</div></div>`;
+  $('gapTiles').innerHTML =
+      tile('GAP chung OPPO − Xiaomi', mt?fmtGap(g,1)+' điểm':'—', mt?`OPPO ${(mk.oppo/mt*100).toFixed(1)}% · Xiaomi ${(mk.xiaomi/mt*100).toFixed(1)}%`:'Chưa có dữ liệu', g===null?'':g>=0?'text-emerald-600':'text-red-600')
+    + tile('Shop OPPO dẫn trước', `${lead}`, `trên ${withSales.length} shop có số bán`, 'text-emerald-600')
+    + tile('Shop cân bằng', `${bal}`, 'chênh lệch trong ±5 điểm', 'text-amber-600')
+    + tile('Shop OPPO thua Xiaomi', `${lag}`, worst&&gapOf(rowB(worst))<=-5?`Thấp nhất: ${shortShop(worst.shop)} (${fmtGap(gapOf(rowB(worst)),1)})`:'—', 'text-red-600');
+
+  const dh=Array.from({length:dim},(_,i)=>`<th class="text-center !px-1 ${String(i+1)===String(shareDay)?'!bg-indigo-100 !text-indigo-700':''}" style="min-width:2.6rem">${i+1}</th>`).join('');
+  const dayCell=(r,d)=>{ const b=r.d[d]; if(!b||!tot(b)) return '<td class="text-center text-slate-200 !px-1">·</td>';
+    const gg=gapOf(b), t=tot(b);
+    return `<td class="text-center !px-1 text-xs font-semibold" style="${gapBg(gg)}" title="Ngày ${d}: OPPO ${b.oppo} (${(b.oppo/t*100).toFixed(0)}%) · Xiaomi ${b.xiaomi} (${(b.xiaomi/t*100).toFixed(0)}%) · Tổng ${t} máy">${fmtGap(gg)}</td>`; };
+  // dòng tổng thị trường theo ngày
+  const dayAll=Array.from({length:dim},(_,i)=>{ const b=emptyB(); rows.forEach(r=>{ const x=r.d[i+1]; if(x) BRANDS.forEach(k=>b[k.k]+=x[k.k]); }); return b; });
+  const monAll=emptyB(); rows.forEach(r=>BRANDS.forEach(k=>monAll[k.k]+=r.m[k.k]));
+  const pc=(b,k)=>tot(b)?(b[k]/tot(b)*100).toFixed(1)+'%':'—';
+  $('gapTable').innerHTML=`<table class="dt"><thead><tr>
+      <th style="position:sticky;left:0;z-index:3">Shop</th><th>Sale man</th>
+      <th class="num">OPPO tháng</th><th class="num">Xiaomi tháng</th><th class="num">GAP tháng</th><th>Đánh giá</th>${dh}</tr></thead><tbody>`
+    + rows.map(r=>{ const gm=gapOf(r.m), t=tot(r.m);
+        return `<tr><td style="position:sticky;left:0;background:#fff;z-index:2">${esc(r.shop)}</td><td>${esc(r.sale)}</td>
+        <td class="num">${t?pc(r.m,'oppo'):'—'}</td><td class="num">${t?pc(r.m,'xiaomi'):'—'}</td>
+        <td class="num font-bold" style="${gapBg(gm)}">${gm===null?'—':fmtGap(gm,1)}</td><td>${gapBadge(gm)}</td>
+        ${Array.from({length:dim},(_,i)=>dayCell(r,i+1)).join('')}</tr>`; }).join('')
+    + `</tbody><tfoot><tr><td style="position:sticky;left:0;z-index:2;background:#f8fafc">TOÀN THỊ TRƯỜNG</td><td></td>
+      <td class="num">${pc(monAll,'oppo')}</td><td class="num">${pc(monAll,'xiaomi')}</td><td class="num" style="${gapBg(gapOf(monAll))}">${tot(monAll)?fmtGap(gapOf(monAll),1):'—'}</td><td>${gapBadge(gapOf(monAll))}</td>
+      ${dayAll.map((b,i)=>tot(b)?`<td class="text-center !px-1 text-xs" style="${gapBg(gapOf(b))}">${fmtGap(gapOf(b))}</td>`:'<td class="text-center text-slate-300 !px-1">·</td>').join('')}</tr></tfoot></table>`;
+}
+
+function exportShare(){
+  const list=inMonth(); if(!list.length){ toast('Chưa có dữ liệu trong tháng này'); return; }
+  const [y,m]=curMonth.split('-').map(Number), dim=new Date(y,m,0).getDate();
+  const rows=shopRows(list);
+  const head=['Sale man','Quận','Shop',...BRANDS.map(b=>b.n+' (máy)'),'Tổng máy',...BRANDS.map(b=>b.n+' (%)'),'GAP tháng OPPO-Xiaomi (điểm %)',...Array.from({length:dim},(_,i)=>`GAP ngày ${i+1}`)];
+  const body=rows.map(r=>{ const t=tot(r.m), g=gapOf(r.m);
+    return [r.sale,r.district,r.shop,...BRANDS.map(b=>r.m[b.k]),t,...BRANDS.map(b=>t?(r.m[b.k]/t*100).toFixed(1):''),g===null?'':g.toFixed(1),
+      ...Array.from({length:dim},(_,i)=>{ const b=r.d[i+1]; return b&&tot(b)?gapOf(b).toFixed(1):''; })]; });
+  downloadCSV(`thiphan_gap_${curMonth}.csv`,[head,...body]);
+}
+
+/* ======== PHÂN TÍCH THEO SALE MAN ======== */
+let saleSel='all';
+const zeroS = () => SEGS.map(()=>0);
+const newNode = () => ({m:emptyB(), ms:zeroS(), d:{}, ds:{}});
+function addToNode(n,e){
+  const dd=+e.date.slice(8);
+  if(!n.d[dd]) n.d[dd]=emptyB(); if(!n.ds[dd]) n.ds[dd]=zeroS();
+  BRANDS.forEach(b=>{ const v=e.b[b.k]||0; n.m[b.k]+=v; n.d[dd][b.k]+=v; });
+  e.s.forEach((v,i)=>{ v=v||0; n.ms[i]+=v; n.ds[dd][i]+=v; });
+}
+function saleGroups(list){
+  const sh=new Map(SHOPS.map(s=>[s.shop,{...s,...newNode()}]));
+  list.forEach(e=>{ if(!sh.has(e.shop)) sh.set(e.shop,{shop:e.shop,sale:e.sale||'(chưa rõ)',district:e.district,...newNode()}); addToNode(sh.get(e.shop),e); });
+  const g=new Map();
+  sh.forEach(s=>{ if(!g.has(s.sale)) g.set(s.sale,{sale:s.sale,shops:[],...newNode()});
+    const x=g.get(s.sale); x.shops.push(s);
+    BRANDS.forEach(b=>{ x.m[b.k]+=s.m[b.k]; });
+    s.ms.forEach((v,i)=>x.ms[i]+=v);
+    Object.keys(s.d).forEach(dd=>{ x.d[dd]=x.d[dd]||emptyB(); BRANDS.forEach(b=>x.d[dd][b.k]+=s.d[dd][b.k]); });
+    Object.keys(s.ds).forEach(dd=>{ x.ds[dd]=x.ds[dd]||zeroS(); s.ds[dd].forEach((v,i)=>x.ds[dd][i]+=v); });
+  });
+  return [...g.values()].sort((a,b)=>tot(b.m)-tot(a.m)||a.sale.localeCompare(b.sale));
+}
+const nB = n => shareDay==='month' ? n.m : (n.d[shareDay]||emptyB());
+const nS = n => shareDay==='month' ? n.ms : (n.ds[shareDay]||zeroS());
+const pctCell = (v,t,color,isMax) => !t ? '<td class="num text-slate-300">—</td>'
+  : `<td class="num ${isMax&&v>0?'font-bold text-slate-900':'text-slate-600'}" style="background:linear-gradient(90deg,${color}40 ${v/t*100}%,transparent ${v/t*100}%)">${(v/t*100).toFixed(1)}%</td>`;
+
+function renderSale(){
+  const list=inMonth(), all=saleGroups(list);
+  // bộ lọc sale
+  if(saleSel!=='all' && !all.some(g=>g.sale===saleSel)) saleSel='all';
+  $('saleFilter').innerHTML=`<option value="all">Tất cả Sale man (${all.length})</option>`+all.map(g=>`<option value="${esc(g.sale)}" ${g.sale===saleSel?'selected':''}>${esc(g.sale)}</option>`).join('');
+  $('saleFilter').value=saleSel;
+  const groups = saleSel==='all' ? all : all.filter(g=>g.sale===saleSel);
+
+  // biểu đồ theo Sale man
+  const h=Math.max(220,groups.length*34+70);
+  $('saleShareBox').style.height=h+'px'; $('saleGapBox').style.height=h+'px';
+  upsert('chSaleShare',{ type:'bar',
+    data:{ labels:groups.map(g=>g.sale), datasets:BRANDS.map(b=>({label:b.n, backgroundColor:b.c, data:groups.map(g=>{const x=nB(g),t=tot(x);return t?x[b.k]/t*100:0;})})) },
+    options:{...baseOpt, indexAxis:'y', plugins:{legend:{position:'top'}, tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.x.toFixed(1)}%`}}},
+      scales:{x:{stacked:true,min:0,max:100,ticks:{callback:v=>v+'%'}}, y:{stacked:true,grid:{display:false},ticks:{autoSkip:false,font:{size:11}}}}} });
+  const gg=groups.map(g=>gapOf(nB(g)));
+  upsert('chSaleGap',{ type:'bar',
+    data:{ labels:groups.map(g=>g.sale), datasets:[{label:'GAP OPPO − Xiaomi', data:gg.map(v=>v===null?0:v), backgroundColor:gg.map(v=>v===null?'#e2e8f0':v>=0?'#10b981':'#ef4444'), borderRadius:3}] },
+    options:{...baseOpt, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>gg[c.dataIndex]===null?' Chưa có số bán':` GAP: ${fmtGap(gg[c.dataIndex],1)} điểm %`}}},
+      scales:{x:{min:-100,max:100,ticks:{callback:v=>v+'%'}}, y:{grid:{display:false},ticks:{autoSkip:false,font:{size:11}}}}} });
+
+  const brandRow=(n,label,sub,isSale)=>{ const b=nB(n),t=tot(b),mx=Math.max(...BRANDS.map(x=>b[x.k])), g=gapOf(b);
+    return `<tr class="${isSale?'sale-row':''}"><td class="${isSale?'font-bold':'pl-6 text-slate-600'}" style="${isSale?'':'padding-left:1.6rem'}">${esc(label)}</td><td class="text-slate-500">${esc(sub)}</td>
+      ${BRANDS.map(x=>pctCell(b[x.k],t,x.c,b[x.k]===mx)).join('')}<td class="num font-semibold">${t?fmt(t):'<span class="text-slate-300">0</span>'}</td>
+      <td class="num font-bold" style="${gapBg(g)}">${g===null?'<span class="text-slate-300 font-normal">—</span>':fmtGap(g,1)}</td></tr>`; };
+  const segRow=(n,label,sub,isSale)=>{ const s=nS(n),t=sum(s),mx=Math.max(...s);
+    return `<tr class="${isSale?'sale-row':''}"><td class="${isSale?'font-bold':'text-slate-600'}" style="${isSale?'':'padding-left:1.6rem'}">${esc(label)}</td><td class="text-slate-500">${esc(sub)}</td>
+      ${s.map((v,i)=>pctCell(v,t,SEG_COLORS[i],v===mx)).join('')}<td class="num font-semibold">${t?fmt(t):'<span class="text-slate-300">0</span>'}</td></tr>`; };
+  const total=newNode(); // tổng các sale đang hiển thị
+  groups.forEach(g=>{ BRANDS.forEach(b=>total.m[b.k]+=g.m[b.k]); g.ms.forEach((v,i)=>total.ms[i]+=v);
+    Object.keys(g.d).forEach(dd=>{ total.d[dd]=total.d[dd]||emptyB(); BRANDS.forEach(b=>total.d[dd][b.k]+=g.d[dd][b.k]); });
+    Object.keys(g.ds).forEach(dd=>{ total.ds[dd]=total.ds[dd]||zeroS(); g.ds[dd].forEach((v,i)=>total.ds[dd][i]+=v); }); });
+
+  $('saleBrandTable').innerHTML=`<table class="dt"><thead><tr><th>Sale man / Shop</th><th>Quận · số shop</th>${BRANDS.map(b=>`<th class="num">${b.n}</th>`).join('')}<th class="num">Tổng máy</th><th class="num">GAP O−X</th></tr></thead><tbody>`
+    + groups.map(g=>brandRow(g,g.sale,`${g.shops.length} shop`,true)+g.shops.map(s=>brandRow(s,shortShop(s.shop),s.district,false)).join('')).join('')
+    + `</tbody><tfoot><tr><td colspan="2">TỔNG ${groups.length} Sale man</td>${BRANDS.map(b=>{const t=tot(nB(total));return `<td class="num">${t?(nB(total)[b.k]/t*100).toFixed(1)+'%':'—'}</td>`;}).join('')}<td class="num">${fmt(tot(nB(total)))}</td><td class="num">${tot(nB(total))?fmtGap(gapOf(nB(total)),1):'—'}</td></tr></tfoot></table>`;
+
+  $('saleSegTable').innerHTML=`<table class="dt"><thead><tr><th>Sale man / Shop</th><th>Quận · số shop</th>${SEGS.map(s=>`<th class="num">${s.n.replace(' triệu','tr').replace('Trên ','>')}</th>`).join('')}<th class="num">Tổng máy</th></tr></thead><tbody>`
+    + groups.map(g=>segRow(g,g.sale,`${g.shops.length} shop`,true)+g.shops.map(s=>segRow(s,shortShop(s.shop),s.district,false)).join('')).join('')
+    + `</tbody><tfoot><tr><td colspan="2">TỔNG ${groups.length} Sale man</td>${nS(total).map(v=>{const t=sum(nS(total));return `<td class="num">${t?(v/t*100).toFixed(1)+'%':'—'}</td>`;}).join('')}<td class="num">${fmt(sum(nS(total)))}</td></tr></tfoot></table>`;
+
+  // ③ GAP theo Sale man: tháng + từng ngày
+  const [y,m]=curMonth.split('-').map(Number), dim=new Date(y,m,0).getDate();
+  const dh=Array.from({length:dim},(_,i)=>`<th class="text-center !px-1" style="min-width:2.6rem">${i+1}</th>`).join('');
+  const dcell=(n,d)=>{ const b=n.d[d]; if(!b||!tot(b)) return '<td class="text-center text-slate-200 !px-1">·</td>'; const t=tot(b),x=gapOf(b);
+    return `<td class="text-center !px-1 text-xs font-semibold" style="${gapBg(x)}" title="Ngày ${d}: OPPO ${b.oppo} (${(b.oppo/t*100).toFixed(0)}%) · Xiaomi ${b.xiaomi} (${(b.xiaomi/t*100).toFixed(0)}%) · Tổng ${t} máy">${fmtGap(x)}</td>`; };
+  const pc=(b,k)=>tot(b)?(b[k]/tot(b)*100).toFixed(1)+'%':'—';
+  const gapRow=(n,label,sub,isSale)=>{ const x=gapOf(n.m);
+    return `<tr class="${isSale?'sale-row':''}"><td style="position:sticky;left:0;z-index:2;${isSale?'':'padding-left:1.6rem;'}" class="${isSale?'font-bold sale-sticky':'text-slate-600 bg-white'}">${esc(label)}</td><td class="text-slate-500">${esc(sub)}</td>
+      <td class="num">${pc(n.m,'oppo')}</td><td class="num">${pc(n.m,'xiaomi')}</td><td class="num font-bold" style="${gapBg(x)}">${x===null?'—':fmtGap(x,1)}</td><td>${gapBadge(x)}</td>
+      ${Array.from({length:dim},(_,i)=>dcell(n,i+1)).join('')}</tr>`; };
+  $('saleGapTable').innerHTML=`<table class="dt"><thead><tr><th style="position:sticky;left:0;z-index:3">Sale man / Shop</th><th>Quận · số shop</th><th class="num">OPPO tháng</th><th class="num">Xiaomi tháng</th><th class="num">GAP tháng</th><th>Đánh giá</th>${dh}</tr></thead><tbody>`
+    + groups.map(g=>gapRow(g,g.sale,`${g.shops.length} shop`,true)+g.shops.map(s=>gapRow(s,shortShop(s.shop),s.district,false)).join('')).join('')
+    + `</tbody><tfoot><tr><td style="position:sticky;left:0;z-index:2;background:#f8fafc">TỔNG ${groups.length} Sale man</td><td></td><td class="num">${pc(total.m,'oppo')}</td><td class="num">${pc(total.m,'xiaomi')}</td><td class="num" style="${gapBg(gapOf(total.m))}">${tot(total.m)?fmtGap(gapOf(total.m),1):'—'}</td><td>${gapBadge(gapOf(total.m))}</td>
+      ${Array.from({length:dim},(_,i)=>{const b=total.d[i+1]; return b&&tot(b)?`<td class="text-center !px-1 text-xs" style="${gapBg(gapOf(b))}">${fmtGap(gapOf(b))}</td>`:'<td class="text-center text-slate-300 !px-1">·</td>';}).join('')}</tr></tfoot></table>`;
+}
+
+function exportSale(){
+  const list=inMonth(); if(!list.length){ toast('Chưa có dữ liệu trong tháng này'); return; }
+  const groups=saleGroups(list);
+  const head=['Cấp','Sale man','Shop','Quận','Số shop',...BRANDS.map(b=>b.n+' (%)'),'Tổng máy (hãng)','GAP O-X (điểm %)',...SEGS.map(s=>s.n+' (%)'),'Tổng máy (phân khúc)'];
+  const line=(lv,sale,shop,dist,ns,n)=>{ const t=tot(n.m), ts=sum(n.ms), g=gapOf(n.m);
+    return [lv,sale,shop,dist,ns,...BRANDS.map(b=>t?(n.m[b.k]/t*100).toFixed(1):''),t,g===null?'':g.toFixed(1),...n.ms.map(v=>ts?(v/ts*100).toFixed(1):''),ts]; };
+  const rows=[]; groups.forEach(g=>{ rows.push(line('Sale man',g.sale,'','',g.shops.length,g)); g.shops.forEach(s=>rows.push(line('Shop',g.sale,s.shop,s.district,'',s))); });
+  downloadCSV(`sale_man_${curMonth}.csv`,[head,...rows]);
+}
+
+/* ======== RENDER CHUNG ======== */
+function renderMonthSel(){
+  const months=[...new Set(entries.map(e=>monthOf(e.date)).concat(monthOf(todayStr()),curMonth))].sort().reverse();
+  $('monthSel').innerHTML=months.map(m=>`<option value="${m}" ${m===curMonth?'selected':''}>Tháng ${monthLabel(m)}</option>`).join('');
+}
+function refresh(){
+  renderMonthSel();
+  const list=inMonth(), a=aggregate(list);
+  renderKPIs(a,list); renderInsight(); renderCharts(a); renderTable(); renderPicker();
+}
+
+/* ======== ĐỒNG BỘ GOOGLE SHEETS ======== */
+// Quản trị viên có thể điền sẵn 2 dòng dưới đây rồi gửi file/link cho nhân viên — họ mở lên là dùng ngay, không cần cấu hình.
+const DEFAULT_SHEETS_URL = '';   // URL Web App (…/exec)
+const DEFAULT_ACCESS_KEY = '';   // trùng ACCESS_KEY trong Code.gs
+const CFG_KEY='sellout_sheets_cfg_v1', Q_KEY='sellout_sheets_queue_v1';
+let cfg={url:DEFAULT_SHEETS_URL,key:DEFAULT_ACCESS_KEY,by:''}, queue=[];
+try{ const c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}'); if(c.url) cfg.url=c.url; if(c.key) cfg.key=c.key; if(c.by) cfg.by=c.by; }catch(e){}
+try{ queue=JSON.parse(localStorage.getItem(Q_KEY)||'[]')||[]; }catch(e){ queue=[]; }
+const connected = () => !!(cfg.url && cfg.key);
+const saveCfg = () => { try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }catch(e){} };
+const saveQueue = () => { try{ localStorage.setItem(Q_KEY, JSON.stringify(queue)); }catch(e){} };
+
+async function callApi(url,key,payload,method){
+  const c=new AbortController(), t=setTimeout(()=>c.abort(),40000);
+  try{
+    const opts = method==='GET' ? {signal:c.signal}
+      : {method:'POST', body:JSON.stringify({...payload,key}), redirect:'follow', signal:c.signal};   // text/plain → không cần preflight CORS
+    const u = method==='GET' ? url+(url.includes('?')?'&':'?')+'action='+(payload.action||'list')+'&key='+encodeURIComponent(key) : url;
+    const r=await fetch(u,opts), txt=await r.text();
+    let j; try{ j=JSON.parse(txt); }catch(e){ throw new Error('Phản hồi không hợp lệ — kiểm tra URL Web App và quyền truy cập "Anyone"'); }
+    if(!j.ok) throw new Error(j.error||'Lỗi máy chủ');
+    return j;
+  }catch(e){ throw new Error(e.name==='AbortError'?'Hết thời gian chờ — kiểm tra mạng':e.message); }
+  finally{ clearTimeout(t); }
+}
+function applyOps(list,ops){
+  const m=new Map(list.map(e=>[e.id,e]));
+  ops.forEach(o=>{ if(o.op==='upsert') m.set(o.entry.id,o.entry); else if(o.op==='delete') m.delete(o.id); });
+  return [...m.values()];
+}
+
+let syncState={kind:'local',msg:'',time:''}, syncing=false, syncTimer=null;
+function setSync(kind,msg){ syncState={kind,msg:msg||'',time:kind==='ok'?new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):syncState.time}; renderSync(); }
+function renderSync(){
+  const el=$('syncPill'); if(!el) return;
+  const n=queue.length, pend=n?` · ${n} chờ gửi`:'';
+  const map={ local:['☁ Chưa kết nối Google Sheets','bg-white/10 text-white border-white/30'],
+    syncing:['⟳ Đang đồng bộ…','bg-white/20 text-white border-white/40'],
+    ok:[`● Đã đồng bộ ${syncState.time}${pend}`,'bg-emerald-400/20 text-emerald-50 border-emerald-300/50'],
+    error:[`⚠ Lỗi đồng bộ${pend} — bấm để thử lại`,'bg-amber-400/25 text-amber-50 border-amber-300/60'] };
+  const [txt,cls]=map[connected()?syncState.kind:'local'];
+  el.textContent=txt; el.className='pill border '+cls; el.title=syncState.msg||'Bấm để đồng bộ / cài đặt';
+}
+async function sync(manual){
+  if(!connected()){ setSync('local'); if(manual) openSettings(); return; }
+  if(syncing) return; syncing=true; setSync('syncing');
+  try{
+    if(queue.length){ const ops=queue.slice(); await callApi(cfg.url,cfg.key,{action:'batch',ops}); queue=queue.slice(ops.length); saveQueue(); }
+    const j=await callApi(cfg.url,cfg.key,{action:'list'},'GET');
+    const merged=applyOps(j.entries,queue);
+    if(JSON.stringify(merged)!==JSON.stringify(entries)){
+      entries=merged; save();
+      if(!entries.some(e=>monthOf(e.date)===curMonth) && entries.length) curMonth=entries.map(e=>monthOf(e.date)).sort().pop();
+      refresh();
+    }
+    setSync('ok'); if(manual) toast('Đã đồng bộ với Google Sheets');
+  }catch(err){ setSync('error',err.message); if(manual) toast('Lỗi: '+err.message); }
+  finally{ syncing=false; }
+}
+function queueOp(op){ if(!connected()) return; queue.push(op); saveQueue(); renderSync(); clearTimeout(syncTimer); syncTimer=setTimeout(()=>sync(false),400); }
+
+/* --- Cài đặt kết nối --- */
+function openSettings(){
+  $('cfgUrl').value=cfg.url; $('cfgKey').value=cfg.key; $('cfgBy').value=cfg.by; $('cfgMsg').textContent='';
+  $('cfgModal').classList.remove('hidden'); $('cfgModal').classList.add('flex');
+}
+function closeSettings(){ $('cfgModal').classList.add('hidden'); $('cfgModal').classList.remove('flex'); }
+async function testCfg(){
+  const url=$('cfgUrl').value.trim(), key=$('cfgKey').value.trim(), m=$('cfgMsg');
+  if(!url||!key){ m.textContent='Hãy nhập URL Web App và mật khẩu truy cập.'; m.className='text-sm text-red-600'; return; }
+  m.textContent='Đang kiểm tra…'; m.className='text-sm text-slate-500';
+  try{ const j=await callApi(url,key,{action:'ping'}); m.textContent=`✓ Kết nối thành công — Sheet hiện có ${j.rows} dòng dữ liệu.`; m.className='text-sm text-emerald-600 font-medium'; return true; }
+  catch(e){ m.textContent='✗ '+e.message; m.className='text-sm text-red-600'; return false; }
+}
+async function saveCfgForm(){
+  const url=$('cfgUrl').value.trim(), key=$('cfgKey').value.trim(), by=$('cfgBy').value.trim();
+  if(url||key){ if(!(await testCfg())) return; }
+  const changed = url!==cfg.url;
+  cfg={url,key,by}; saveCfg();
+  if(connected() && changed && entries.length && confirm(`Máy này đang có ${entries.length} dòng dữ liệu.\n\nOK = tải các dòng này lên Google Sheets (gộp với dữ liệu của mọi người)\nHủy = không tải lên (dữ liệu trên máy sẽ được thay bằng dữ liệu từ Sheets)`)){
+    entries.forEach(e=>queue.push({op:'upsert',entry:e})); saveQueue();
+  }
+  closeSettings(); renderSync();
+  if(connected()) sync(true); else { setSync('local'); toast('Đã ngắt kết nối — dữ liệu lưu trên máy này'); }
+}
+function disconnectCfg(){ $('cfgUrl').value=''; $('cfgKey').value=''; saveCfgForm(); }
+
+/* ======== SỰ KIỆN ======== */
+$('btnAdd').onclick=submitForm;
+$('btnReset').onclick=()=>resetForm(true);
+$('btnCancel').onclick=()=>resetForm(true);
+$('btnAddProd').onclick=addProduct;
+$('pBrand').onchange=fillModels;
+$('fShop').addEventListener('input',onShopInput);
+$('fSaleSel').addEventListener('change',()=>{ const s=findShop(); if(s && s.sale!==$('fSaleSel').value){ $('fShop').value=''; } fillShopList(); onShopInput(); });
+$('fDate').addEventListener('change',renderPicker);
+$('shopPicker').addEventListener('click',e=>{ const b=e.target.closest('[data-shop]'); if(b) pickShop(b.dataset.shop); });
+$('fShop').addEventListener('change',onShopInput);
+$('chips').addEventListener('click',e=>{ const b=e.target.closest('[data-rm]'); if(b) removeProduct(+b.dataset.rm); });
+$('monthSel').onchange=e=>{ curMonth=e.target.value; refresh(); };
+$('shareDay').onchange=e=>{ shareDay=e.target.value; renderInsight(); };
+$('shareSort').onchange=e=>{ shareSort=e.target.value; renderInsight(); };
+$('shareSearch').addEventListener('input',renderInsight);
+$('btnExportShare').onclick=exportShare;
+$('saleFilter').onchange=e=>{ saleSel=e.target.value; renderSale(); };
+$('btnExportSale').onclick=exportSale;
+$('btnExport').onclick=exportAll;
+$('btnExportShop').onclick=exportShop;
+$('btnClear').onclick=clearAll;
+$('syncPill').onclick=()=>sync(true);
+$('btnCfg').onclick=openSettings; $('cfgClose').onclick=closeSettings;
+$('cfgTest').onclick=testCfg; $('cfgSave').onclick=saveCfgForm; $('cfgDisc').onclick=disconnectCfg;
+$('cfgModal').addEventListener('click',e=>{ if(e.target===$('cfgModal')) closeSettings(); });
+setInterval(()=>{ if(connected() && !document.hidden && !syncing) sync(false); },30000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && connected()) sync(false); });
+window.addEventListener('online',()=>{ if(connected()) sync(false); });
+$('search').addEventListener('input',renderTable);
+$('tabs').addEventListener('click',e=>{ const t=e.target.closest('.tab'); if(!t) return;
+  curTab=t.dataset.tab; document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t)); renderTable(); });
+['gapTable','saleGapTable'].forEach(id=>$(id).addEventListener('click',e=>{ const td=e.target.closest('td[title]'); if(td) toast(td.title); }));
+$('tableWrap').addEventListener('click',e=>{
+  const ed=e.target.closest('[data-edit]'), dl=e.target.closest('[data-del]');
+  if(ed) editEntry(ed.dataset.edit); else if(dl) deleteEntry(dl.dataset.del); });
+document.addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.matches('#brandInputs input,#segInputs input,#pQty')) { e.preventDefault(); if(e.target.id==='pQty') addProduct(); else submitForm(); } });
+
+buildForm(); renderChips(); updateSums();
+// mở dashboard ở tháng gần nhất có dữ liệu nếu tháng hiện tại chưa có
+if(entries.length && !inMonth().length) curMonth = entries.map(e=>monthOf(e.date)).sort().pop();
+refresh();
+renderSync();
+if(connected()) sync(false);
+</script>
+</body>
+</html>
